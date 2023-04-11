@@ -3,109 +3,28 @@
  * @param  doc    documnet实例
  * @param  options 配置项
  */
-function Readability(doc, options) {
-  // In some older versions, people passed a URI as the first argument. Cope:
-  if (options && options.documentElement) {
-    doc = options;
-    options = arguments[2];
-  } else if (!doc || !doc.documentElement) {
-    throw new Error("First argument to Readability constructor should be a document object.");
-  }
-  options = options || {};
 
-  this._doc = doc;
-  this._docJSDOMParser = this._doc.firstChild.__JSDOMParser__;
-  this._articleTitle = null;
-  this._articleByline = null;
-  this._articleDir = null;
-  this._articleSiteName = null;
-  this._attempts = [];
+export default class Readability {
 
-  // Configurable options
-  this._debug = !!options.debug;
-  this._maxElemsToParse = options.maxElemsToParse || this.DEFAULT_MAX_ELEMS_TO_PARSE;
-  this._nbTopCandidates = options.nbTopCandidates || this.DEFAULT_N_TOP_CANDIDATES;
-  this._charThreshold = options.charThreshold || this.DEFAULT_CHAR_THRESHOLD;
-  this._classesToPreserve = this.CLASSES_TO_PRESERVE.concat(options.classesToPreserve || []);
-  this._keepClasses = !!options.keepClasses;
-  this._serializer = options.serializer || function (el) {
-    return el.innerHTML;
-  };
-  this._disableJSONLD = !!options.disableJSONLD;
-  this._allowedVideoRegex = options.allowedVideoRegex || this.REGEXPS.videos;
+  FLAG_STRIP_UNLIKELYS = 0x1 // 1
+  FLAG_WEIGHT_CLASSES = 0x2  // 2
+  FLAG_CLEAN_CONDITIONALLY = 0x4 // 4
 
-  // Start with all flags set
-  this._flags = this.FLAG_STRIP_UNLIKELYS |
-    this.FLAG_WEIGHT_CLASSES |
-    this.FLAG_CLEAN_CONDITIONALLY;
+  /** 元素 nodeType === 1 */
+  ELEMENT_NODE = 1
+  /** 文本元素 nodeType === 3 */
+  TEXT_NODE = 3
 
+  DEFAULT_MAX_ELEMS_TO_PARSE = 0
 
-  // Control whether log messages are sent to the console
-  if (this._debug) {
-    let logNode = function (node) {
-      if (node.nodeType == node.TEXT_NODE) {
-        return `${node.nodeName} ("${node.textContent}")`;
-      }
-      let attrPairs = Array.from(node.attributes || [], function (attr) {
-        return `${attr.name}="${attr.value}"`;
-      }).join(" ");
-      return `<${node.localName} ${attrPairs}>`;
-    };
-    this.log = function () {
-      if (typeof console !== "undefined") {
-        let args = Array.from(arguments, arg => {
-          if (arg && arg.nodeType == this.ELEMENT_NODE) {
-            return logNode(arg);
-          }
-          return arg;
-        });
-        args.unshift("Reader: (Readability)");
-        console.log.apply(console, args);
-      } else if (typeof dump !== "undefined") {
-        /* global dump */
-        var msg = Array.prototype.map.call(arguments, function (x) {
-          return (x && x.nodeName) ? logNode(x) : x;
-        }).join(" ");
-        dump("Reader: (Readability) " + msg + "\n");
-      }
-    };
-  } else {
-    this.log = function () { };
-  }
-}
+  DEFAULT_N_TOP_CANDIDATES = 5
 
-Readability.prototype = {
-  FLAG_STRIP_UNLIKELYS: 0x1, // 1
-  FLAG_WEIGHT_CLASSES: 0x2,  // 2
-  FLAG_CLEAN_CONDITIONALLY: 0x4, // 4
-
-  // https://developer.mozilla.org/en-US/docs/Web/API/Node/nodeType
-  ELEMENT_NODE: 1,
-  TEXT_NODE: 3,
-
-  // Max number of nodes supported by this parser. Default: 0 (no limit)
-  /** 最大节点数 默认不限制 */
-  DEFAULT_MAX_ELEMS_TO_PARSE: 0,
-
-  // The number of top candidates to consider when analysing how
-  // tight the competition is among candidates.
-  /**候选数量 */
-  DEFAULT_N_TOP_CANDIDATES: 5,
-
-  // Element tags to score by default.
   /** 这些元素标记评分 */
-  DEFAULT_TAGS_TO_SCORE: "section,h2,h3,h4,h5,h6,p,td,pre".toUpperCase().split(","),
+  DEFAULT_TAGS_TO_SCORE = "section,h2,h3,h4,h5,h6,p,td,pre".toUpperCase().split(",")
 
-  // The default number of chars an article must have in order to return a result
-  /** 文章的默认字数 */
-  DEFAULT_CHAR_THRESHOLD: 500,
+  DEFAULT_CHAR_THRESHOLD = 500
 
-  // All of the regular expressions in use within readability.
-  // Defined up here so we don't instantiate them repeatedly in loops.
-  /** 实例化一推正则 */
-  REGEXPS: {
-    // NOTE: These two regular expressions are duplicated in
-    // Readability-readerable.js. Please keep both copies in sync.
+  REGEXPS = {
     /** 一些不太可能的class 和 id */
     unlikelyCandidates: /-ad-|ai2html|banner|breadcrumbs|combx|comment|community|cover-wrap|disqus|extra|footer|gdpr|header|legends|menu|related|remark|replies|rss|shoutbox|sidebar|skyscraper|social|sponsor|supplemental|ad-break|agegate|pagination|pager|popup|yom-remote/i,
     /** 一些可能的class 和 id */
@@ -118,6 +37,7 @@ Readability.prototype = {
     byline: /byline|author|dateline|writtenby|p-author/i,
     replaceFonts: /<(\/?)font[^>]*>/gi,
     normalize: /\s{2,}/g,
+    /** 一些视频网站的标识 */
     videos: /\/\/(www\.)?((dailymotion|youtube|youtube-nocookie|player\.vimeo|v\.qq)\.com|(archive|upload\.wikimedia)\.org|player\.twitch\.tv)/i,
     shareElements: /(\b|_)(share|sharedaddy)(\b|_)/i,
     nextLink: /(next|weiter|continue|>([^\|]|$)|»([^\|]|$))/i,
@@ -128,45 +48,127 @@ Readability.prototype = {
     hashUrl: /^#.+/,
     srcsetUrl: /(\S+)(\s+[\d.]+[xw])?(\s*(?:,|$))/g,
     b64DataUrl: /^data:\s*([^\s;,]+)\s*;\s*base64\s*,/i,
-    // See: https://schema.org/Article
     jsonLdArticleTypes: /^Article|AdvertiserContentArticle|NewsArticle|AnalysisNewsArticle|AskPublicNewsArticle|BackgroundNewsArticle|OpinionNewsArticle|ReportageNewsArticle|ReviewNewsArticle|Report|SatiricalArticle|ScholarlyArticle|MedicalScholarlyArticle|SocialMediaPosting|BlogPosting|LiveBlogPosting|DiscussionForumPosting|TechArticle|APIReference$/
-  },
+  }
 
-  UNLIKELY_ROLES: ["menu", "menubar", "complementary", "navigation", "alert", "alertdialog", "dialog"],
+  /** 不可能的 role 属性 */
+  UNLIKELY_ROLES = ["menu", "menubar", "complementary", "navigation", "alert", "alertdialog", "dialog"]
 
-  DIV_TO_P_ELEMS: new Set(["BLOCKQUOTE", "DL", "DIV", "IMG", "OL", "P", "PRE", "TABLE", "UL"]),
+  /** 一些块级元素 */
+  DIV_TO_P_ELEMS = new Set(["BLOCKQUOTE", "DL", "DIV", "IMG", "OL", "P", "PRE", "TABLE", "UL"])
 
-  ALTER_TO_DIV_EXCEPTIONS: ["DIV", "ARTICLE", "SECTION", "P"],
+  /** 常见的包裹文章的块级元素 */
+  ALTER_TO_DIV_EXCEPTIONS = ["DIV", "ARTICLE", "SECTION", "P"]
+  /** 需要被移除的属性 */
+  PRESENTATIONAL_ATTRIBUTES = ["align", "background", "bgcolor", "border", "cellpadding", "cellspacing", "frame", "hspace", "rules", "style", "valign", "vspace"]
+  /** 需要删除宽高的标签 */
+  DEPRECATED_SIZE_ATTRIBUTE_ELEMS = ["TABLE", "TH", "TD", "HR", "PRE"]
 
-  PRESENTATIONAL_ATTRIBUTES: ["align", "background", "bgcolor", "border", "cellpadding", "cellspacing", "frame", "hspace", "rules", "style", "valign", "vspace"],
-
-  DEPRECATED_SIZE_ATTRIBUTE_ELEMS: ["TABLE", "TH", "TD", "HR", "PRE"],
-
-  // The commented out elements qualify as phrasing content but tend to be
-  // removed by readability when put into paragraphs, so we ignore them here.
-  /** 一些分段的元素 */
-  PHRASING_ELEMS: [
+  /** 一些分段的元素，注释掉的元素会在段落处理逻辑中被删除，所以可以忽略 */
+  PHRASING_ELEMS = [
     // "CANVAS", "IFRAME", "SVG", "VIDEO",
     "ABBR", "AUDIO", "B", "BDO", "BR", "BUTTON", "CITE", "CODE", "DATA",
     "DATALIST", "DFN", "EM", "EMBED", "I", "IMG", "INPUT", "KBD", "LABEL",
     "MARK", "MATH", "METER", "NOSCRIPT", "OBJECT", "OUTPUT", "PROGRESS", "Q",
     "RUBY", "SAMP", "SCRIPT", "SELECT", "SMALL", "SPAN", "STRONG", "SUB",
     "SUP", "TEXTAREA", "TIME", "VAR", "WBR"
-  ],
+  ]
 
-  // These are the classes that readability sets itself.
-  /** 就一个值page */
-  CLASSES_TO_PRESERVE: ["page"],
+  CLASSES_TO_PRESERVE = ["page"]
 
-  // These are the list of HTML entities that need to be escaped.
   /** html实体转换列表 */
-  HTML_ESCAPE_MAP: {
+  HTML_ESCAPE_MAP = {
     "lt": "<",
     "gt": ">",
     "amp": "&",
     "quot": '"',
     "apos": "'",
-  },
+  }
+
+  constructor(doc, options = {
+    debug: false,
+    maxElemsToParse: "",
+    nbTopCandidates: "",
+    charThreshold: "",
+    classesToPreserve: "",
+    keepClasses: "",
+    serializer: "",
+    disableJSONLD: "",
+    allowedVideoRegex: "",
+  }) {
+    if (!doc || !doc.documentElement) {
+      throw new Error("First argument to Readability constructor should be a document object.");
+    }
+
+    this._doc = doc;
+    /** 文章标题 */
+    this._articleTitle = null;
+    /** 文章作者 */
+    this._articleByline = null;
+    /** 文本方向 */
+    this._articleDir = null;
+    /** 文章站点名称 */
+    this._articleSiteName = null;
+    /** 存放候选节点的临时数组 */
+    this._attempts = [];
+
+    /** 调试模式 */
+    this._debug = !!options.debug;
+    /** 可处理文档的最大节点数，超出抛异常，默认 0，不限制。 */
+    this._maxElemsToParse = options.maxElemsToParse || this.DEFAULT_MAX_ELEMS_TO_PARSE;
+    /** 挑选最佳节点时的候选数量 默认 5 */
+    this._nbTopCandidates = options.nbTopCandidates || this.DEFAULT_N_TOP_CANDIDATES;
+    /** 文章默认字数，默认 500 */
+    this._charThreshold = options.charThreshold || this.DEFAULT_CHAR_THRESHOLD;
+    /** 清空class的时候排除这个数组中的class，默认 ["page"] */
+    this._classesToPreserve = this.CLASSES_TO_PRESERVE.concat(options.classesToPreserve || []);
+    /** 是否保留class, 如果设置为false，就会清空class, 默认 false */
+    this._keepClasses = !!options.keepClasses;
+    /** dom格式化函数, 默认为取 dom 的 innerHTML */
+    this._serializer = options.serializer || function (el) {
+      return el.innerHTML;
+    };
+    /** 禁用 json-LD, 默认 false */
+    this._disableJSONLD = !!options.disableJSONLD;
+    /** 匹配视频网站的的正则表达式 */
+    this._allowedVideoRegex = options.allowedVideoRegex || this.REGEXPS.videos;
+
+    /** 初始设置所有标志 7 */
+    this._flags = this.FLAG_STRIP_UNLIKELYS | this.FLAG_WEIGHT_CLASSES | this.FLAG_CLEAN_CONDITIONALLY;
+
+    // debug 模式控制台
+    if (this._debug) {
+      let logNode = function (node) {
+        if (node.nodeType == node.TEXT_NODE) {
+          return `${node.nodeName} ("${node.textContent}")`;
+        }
+        let attrPairs = Array.from(node.attributes || [], function (attr) {
+          return `${attr.name}="${attr.value}"`;
+        }).join(" ");
+        return `<${node.localName} ${attrPairs}>`;
+      };
+      this.log = function () {
+        if (typeof console !== "undefined") {
+          let args = Array.from(arguments, arg => {
+            if (arg && arg.nodeType == this.ELEMENT_NODE) {
+              return logNode(arg);
+            }
+            return arg;
+          });
+          args.unshift("Reader: (Readability)");
+          console.log.apply(console, args);
+        } else if (typeof dump !== "undefined") {
+          /* global dump */
+          var msg = Array.prototype.map.call(arguments, function (x) {
+            return (x && x.nodeName) ? logNode(x) : x;
+          }).join(" ");
+          dump("Reader: (Readability) " + msg + "\n");
+        }
+      };
+    } else {
+      this.log = function () { };
+    }
+  }
 
   /**
    * Run any post-process modifications to article content as necessary.
@@ -174,7 +176,7 @@ Readability.prototype = {
    * @param Element
    * @return void
   **/
-  _postProcessContent: function (articleContent) {
+  _postProcessContent(articleContent) {
     // Readability cannot open relative uris so we convert them to absolute uris.
     this._fixRelativeUris(articleContent);
 
@@ -184,7 +186,7 @@ Readability.prototype = {
       // Remove classes.
       this._cleanClasses(articleContent);
     }
-  },
+  }
 
   /**
    * Iterates over a NodeList, calls `filterFn` for each node and removes node
@@ -196,11 +198,7 @@ Readability.prototype = {
    * @param Function filterFn the function to use as a filter
    * @return void
    */
-  _removeNodes: function (nodeList, filterFn) {
-    // Avoid ever operating on live node lists.
-    if (this._docJSDOMParser && nodeList._isLiveNodeList) {
-      throw new Error("Do not pass live node lists to _removeNodes");
-    }
+  _removeNodes(nodeList, filterFn) {
     for (var i = nodeList.length - 1; i >= 0; i--) {
       var node = nodeList[i];
       var parentNode = node.parentNode;
@@ -210,7 +208,7 @@ Readability.prototype = {
         }
       }
     }
-  },
+  }
 
   /**
    * Iterates over a NodeList, and calls _setNodeTag for each node.
@@ -219,15 +217,11 @@ Readability.prototype = {
    * @param String newTagName the new tag name to use
    * @return void
    */
-  _replaceNodeTags: function (nodeList, newTagName) {
-    // Avoid ever operating on live node lists.
-    if (this._docJSDOMParser && nodeList._isLiveNodeList) {
-      throw new Error("Do not pass live node lists to _replaceNodeTags");
-    }
+  _replaceNodeTags(nodeList, newTagName) {
     for (const node of nodeList) {
       this._setNodeTag(node, newTagName);
     }
-  },
+  }
 
   /**
    * Iterate over a NodeList, which doesn't natively fully implement the Array
@@ -240,9 +234,9 @@ Readability.prototype = {
    * @param  Function fn       The iterate function.
    * @return void
    */
-  _forEachNode: function (nodeList, fn) {
+  _forEachNode(nodeList, fn) {
     Array.prototype.forEach.call(nodeList, fn, this);
-  },
+  }
 
   /**
    * Iterate over a NodeList, and return the first node that passes
@@ -255,9 +249,9 @@ Readability.prototype = {
    * @param  Function fn       The test function.
    * @return void
    */
-  _findNode: function (nodeList, fn) {
+  _findNode(nodeList, fn) {
     return Array.prototype.find.call(nodeList, fn, this);
-  },
+  }
 
   /**
    * Iterate over a NodeList, return true if any of the provided iterate
@@ -270,9 +264,9 @@ Readability.prototype = {
    * @param  Function fn       The iterate function.
    * @return Boolean
    */
-  _someNode: function (nodeList, fn) {
+  _someNode(nodeList, fn) {
     return Array.prototype.some.call(nodeList, fn, this);
-  },
+  }
 
   /**
    * Iterate over a NodeList, return true if all of the provided iterate
@@ -285,9 +279,9 @@ Readability.prototype = {
    * @param  Function fn       The iterate function.
    * @return Boolean
    */
-  _everyNode: function (nodeList, fn) {
+  _everyNode(nodeList, fn) {
     return Array.prototype.every.call(nodeList, fn, this);
-  },
+  }
 
   /**
    * Concat all nodelists passed as arguments.
@@ -295,16 +289,16 @@ Readability.prototype = {
    * @return ...NodeList
    * @return Array
    */
-  _concatNodeLists: function () {
+  _concatNodeLists() {
     var slice = Array.prototype.slice;
     var args = slice.call(arguments);
     var nodeLists = args.map(function (list) {
       return slice.call(list);
     });
     return Array.prototype.concat.apply([], nodeLists);
-  },
+  }
 
-  _getAllNodesWithTag: function (node, tagNames) {
+  _getAllNodesWithTag(node, tagNames) {
     if (node.querySelectorAll) {
       return node.querySelectorAll(tagNames.join(","));
     }
@@ -313,7 +307,7 @@ Readability.prototype = {
       var collection = node.getElementsByTagName(tag);
       return Array.isArray(collection) ? collection : Array.from(collection);
     }));
-  },
+  }
 
   /**
    * Removes the class="" attribute from every element in the given
@@ -323,7 +317,7 @@ Readability.prototype = {
    * @param Element
    * @return void
    */
-  _cleanClasses: function (node) {
+  _cleanClasses(node) {
     var classesToPreserve = this._classesToPreserve;
     var className = (node.getAttribute("class") || "")
       .split(/\s+/)
@@ -341,7 +335,7 @@ Readability.prototype = {
     for (node = node.firstElementChild; node; node = node.nextElementSibling) {
       this._cleanClasses(node);
     }
-  },
+  }
 
   /**
    * Converts each <a> and <img> uri in the given element to an absolute URI,
@@ -350,7 +344,7 @@ Readability.prototype = {
    * @param Element
    * @return void
    */
-  _fixRelativeUris: function (articleContent) {
+  _fixRelativeUris(articleContent) {
     var baseURI = this._doc.baseURI;
     var documentURI = this._doc.documentURI;
     function toAbsoluteURI(uri) {
@@ -418,9 +412,9 @@ Readability.prototype = {
         media.setAttribute("srcset", newSrcset);
       }
     });
-  },
+  }
 
-  _simplifyNestedElements: function (articleContent) {
+  _simplifyNestedElements(articleContent) {
     var node = articleContent;
 
     while (node) {
@@ -441,7 +435,7 @@ Readability.prototype = {
 
       node = this._getNextNode(node);
     }
-  },
+  }
 
   /**
    * Get the article title as an H1.
@@ -457,7 +451,7 @@ Readability.prototype = {
     }
    * @return string
    **/
-  _getArticleTitle: function () {
+  _getArticleTitle() {
     var doc = this._doc;
     var curTitle = "";
     var origTitle = "";
@@ -531,7 +525,7 @@ Readability.prototype = {
     }
 
     return curTitle;
-  },
+  }
 
   /**
    * Prepare the HTML document for readability to scrape it.
@@ -539,7 +533,7 @@ Readability.prototype = {
    *
    * @return void
    **/
-  _prepDocument: function () {
+  _prepDocument() {
     var doc = this._doc;
 
     // Remove all style tags in head
@@ -550,14 +544,14 @@ Readability.prototype = {
     }
 
     this._replaceNodeTags(this._getAllNodesWithTag(doc, ["font"]), "SPAN");
-  },
+  }
 
   /**
    * Finds the next node, starting from the given node, and ignoring
    * whitespace in between. If the given node is an element, the same node is
    * returned.
    */
-  _nextNode: function (node) {
+  _nextNode(node) {
     var next = node;
     while (next
       && (next.nodeType != this.ELEMENT_NODE)
@@ -565,7 +559,7 @@ Readability.prototype = {
       next = next.nextSibling;
     }
     return next;
-  },
+  }
 
   /**
    * Replaces 2 or more successive <br> elements with a single <p>.
@@ -574,7 +568,7 @@ Readability.prototype = {
    * will become:
    *   <div>foo<br>bar<p>abc</p></div>
    */
-  _replaceBrs: function (elem) {
+  _replaceBrs(elem) {
     this._forEachNode(this._getAllNodesWithTag(elem, ["br"]), function (br) {
       var next = br.nextSibling;
 
@@ -625,16 +619,10 @@ Readability.prototype = {
           this._setNodeTag(p.parentNode, "DIV");
       }
     });
-  },
+  }
 
-  _setNodeTag: function (node, tag) {
+  _setNodeTag(node, tag) {
     this.log("_setNodeTag", node, tag);
-    if (this._docJSDOMParser) {
-      node.localName = tag.toLowerCase();
-      node.tagName = tag.toUpperCase();
-      return node;
-    }
-
     var replacement = node.ownerDocument.createElement(tag);
     while (node.firstChild) {
       replacement.appendChild(node.firstChild);
@@ -656,7 +644,7 @@ Readability.prototype = {
       }
     }
     return replacement;
-  },
+  }
 
   /**
    * Prepare the article node for display. Clean out any inline styles,
@@ -665,7 +653,7 @@ Readability.prototype = {
    * @param Element
    * @return void
    **/
-  _prepArticle: function (articleContent) {
+  _prepArticle(articleContent) {
     this._cleanStyles(articleContent);
 
     // Check for data tables before we continue, to avoid removing items in
@@ -741,7 +729,7 @@ Readability.prototype = {
         }
       }
     });
-  },
+  }
 
   /**
    * Initialize a node with the readability object. Also checks the
@@ -750,7 +738,7 @@ Readability.prototype = {
    * @param Element
    * @return void
   **/
-  _initializeNode: function (node) {
+  _initializeNode(node) {
     node.readability = { "contentScore": 0 };
 
     switch (node.tagName) {
@@ -787,13 +775,13 @@ Readability.prototype = {
     }
 
     node.readability.contentScore += this._getClassWeight(node);
-  },
+  }
 
-  _removeAndGetNext: function (node) {
+  _removeAndGetNext(node) {
     var nextNode = this._getNextNode(node, true);
     node.parentNode.removeChild(node);
     return nextNode;
-  },
+  }
 
   /**
    * Traverse the DOM from node to node, starting at the node passed in.
@@ -802,7 +790,7 @@ Readability.prototype = {
    *
    * Calling this in a loop will traverse the DOM depth-first.
    */
-  _getNextNode: function (node, ignoreSelfAndKids) {
+  _getNextNode(node, ignoreSelfAndKids) {
     // First check for kids if those aren't being ignored
     if (!ignoreSelfAndKids && node.firstElementChild) {
       return node.firstElementChild;
@@ -818,13 +806,13 @@ Readability.prototype = {
       node = node.parentNode;
     } while (node && !node.nextElementSibling);
     return node && node.nextElementSibling;
-  },
+  }
 
   // compares second text to first one
   // 1 = same text, 0 = completely different text
   // works the way that it splits both texts into words and then finds words that are unique in second text
   // the result is given by the lower length of unique parts
-  _textSimilarity: function (textA, textB) {
+  _textSimilarity(textA, textB) {
     var tokensA = textA.toLowerCase().split(this.REGEXPS.tokenize).filter(Boolean);
     var tokensB = textB.toLowerCase().split(this.REGEXPS.tokenize).filter(Boolean);
     if (!tokensA.length || !tokensB.length) {
@@ -833,9 +821,9 @@ Readability.prototype = {
     var uniqTokensB = tokensB.filter(token => !tokensA.includes(token));
     var distanceB = uniqTokensB.join(" ").length / tokensB.join(" ").length;
     return 1 - distanceB;
-  },
+  }
 
-  _checkByline: function (node, matchString) {
+  _checkByline(node, matchString) {
     if (this._articleByline) {
       return false;
     }
@@ -851,9 +839,9 @@ Readability.prototype = {
     }
 
     return false;
-  },
+  }
 
-  _getNodeAncestors: function (node, maxDepth) {
+  _getNodeAncestors(node, maxDepth) {
     maxDepth = maxDepth || 0;
     var i = 0, ancestors = [];
     while (node.parentNode) {
@@ -863,7 +851,7 @@ Readability.prototype = {
       node = node.parentNode;
     }
     return ancestors;
-  },
+  }
 
   /***
    * grabArticle - Using a variety of metrics (content score, classname, element types), find the content that is
@@ -872,7 +860,7 @@ Readability.prototype = {
    * @param page a document to run upon. Needs to be a full document, complete with body.
    * @return Element
   **/
-  _grabArticle: function (page) {
+  _grabArticle(page) {
     this.log("**** grabArticle ****");
     var doc = this._doc;
     var isPaging = page !== null; // false
@@ -1350,7 +1338,7 @@ Readability.prototype = {
         return articleContent;
       }
     }
-  },
+  }
 
   /**
    * Check whether the input string could be a byline.
@@ -1360,13 +1348,13 @@ Readability.prototype = {
    * @param possibleByline {string} - a string to check whether its a byline.
    * @return Boolean - whether the input string is a byline.
    */
-  _isValidByline: function (byline) {
+  _isValidByline(byline) {
     if (typeof byline == "string" || byline instanceof String) {
       byline = byline.trim();
       return (byline.length > 0) && (byline.length < 100);
     }
     return false;
-  },
+  }
 
   /**
    * Converts some of the common HTML entities in string to their corresponding characters.
@@ -1374,7 +1362,7 @@ Readability.prototype = {
    * @param str {string} - a string to unescape.
    * @return string without HTML entity.
    */
-  _unescapeHtmlEntities: function (str) {
+  _unescapeHtmlEntities(str) {
     if (!str) {
       return str;
     }
@@ -1386,14 +1374,14 @@ Readability.prototype = {
       var num = parseInt(hex || numStr, hex ? 16 : 10);
       return String.fromCharCode(num);
     });
-  },
+  }
 
   /**
    * Try to extract metadata from JSON-LD object.
    * For now, only Schema.org objects of type Article or its subtypes are supported.
    * @return Object with any metadata that could be extracted (possibly none)
    */
-  _getJSONLD: function (doc) {
+  _getJSONLD(doc) {
     var scripts = this._getAllNodesWithTag(doc, ["script"]);
 
     var metadata;
@@ -1478,7 +1466,7 @@ Readability.prototype = {
       }
     });
     return metadata ? metadata : {};
-  },
+  }
 
   /**
    * Attempts to get excerpt and byline metadata for the article.
@@ -1488,7 +1476,7 @@ Readability.prototype = {
    *
    * @return Object with optional "excerpt" and "byline" properties
    */
-  _getArticleMetadata: function (jsonld) {
+  _getArticleMetadata(jsonld) {
     var metadata = {};
     var values = {};
     var metaElements = this._doc.getElementsByTagName("meta");
@@ -1574,7 +1562,7 @@ Readability.prototype = {
     metadata.siteName = this._unescapeHtmlEntities(metadata.siteName);
 
     return metadata;
-  },
+  }
 
   /**
    * Check if node is image, or if node contains exactly only one image
@@ -1582,7 +1570,7 @@ Readability.prototype = {
    *
    * @param Element
   **/
-  _isSingleImage: function (node) {
+  _isSingleImage(node) {
     if (node.tagName === "IMG") {
       return true;
     }
@@ -1592,7 +1580,7 @@ Readability.prototype = {
     }
 
     return this._isSingleImage(node.children[0]);
-  },
+  }
 
   /**
    * 把noscript标签中的图像拿出来添加为文档的第一个图像，然后把noscript删除，为了适配 Medium
@@ -1604,7 +1592,7 @@ Readability.prototype = {
    *
    * @param Element
   **/
-  _unwrapNoscriptImages: function (doc) {
+  _unwrapNoscriptImages(doc) {
     // Find img without source or attributes that might contains image, and remove it.
     // This is done to prevent a placeholder img is replaced by img from noscript in next step.
     var imgs = Array.from(doc.getElementsByTagName("img"));
@@ -1671,16 +1659,16 @@ Readability.prototype = {
         noscript.parentNode.replaceChild(tmp.firstElementChild, prevElement);
       }
     });
-  },
+  }
 
   /**
    * Removes script tags from the document.
    *
    * @param Element
   **/
-  _removeScripts: function (doc) {
+  _removeScripts(doc) {
     this._removeNodes(this._getAllNodesWithTag(doc, ["script", "noscript"]));
-  },
+  }
 
   /**
    * Check if this node has only whitespace and a single element with given tag
@@ -1690,7 +1678,7 @@ Readability.prototype = {
    * @param Element
    * @param string tag of child element
   **/
-  _hasSingleTagInsideElement: function (element, tag) {
+  _hasSingleTagInsideElement(element, tag) {
     // There should be exactly 1 element child with given tag
     if (element.children.length != 1 || element.children[0].tagName !== tag) {
       return false;
@@ -1701,41 +1689,41 @@ Readability.prototype = {
       return node.nodeType === this.TEXT_NODE &&
         this.REGEXPS.hasContent.test(node.textContent);
     });
-  },
+  }
 
-  _isElementWithoutContent: function (node) {
+  _isElementWithoutContent(node) {
     return node.nodeType === this.ELEMENT_NODE &&
       node.textContent.trim().length == 0 &&
       (node.children.length == 0 ||
         node.children.length == node.getElementsByTagName("br").length + node.getElementsByTagName("hr").length);
-  },
+  }
 
   /**
    * Determine whether element has any children block level elements.
    *
    * @param Element
    */
-  _hasChildBlockElement: function (element) {
+  _hasChildBlockElement(element) {
     return this._someNode(element.childNodes, function (node) {
       return this.DIV_TO_P_ELEMS.has(node.tagName) ||
         this._hasChildBlockElement(node);
     });
-  },
+  }
 
   /***
    * Determine if a node qualifies as phrasing content.
    * https://developer.mozilla.org/en-US/docs/Web/Guide/HTML/Content_categories#Phrasing_content
   **/
-  _isPhrasingContent: function (node) {
+  _isPhrasingContent(node) {
     return node.nodeType === this.TEXT_NODE || this.PHRASING_ELEMS.indexOf(node.tagName) !== -1 ||
       ((node.tagName === "A" || node.tagName === "DEL" || node.tagName === "INS") &&
         this._everyNode(node.childNodes, this._isPhrasingContent));
-  },
+  }
 
-  _isWhitespace: function (node) {
+  _isWhitespace(node) {
     return (node.nodeType === this.TEXT_NODE && node.textContent.trim().length === 0) ||
       (node.nodeType === this.ELEMENT_NODE && node.tagName === "BR");
-  },
+  }
 
   /**
    * Get the inner text of a node - cross browser compatibly.
@@ -1745,7 +1733,7 @@ Readability.prototype = {
    * @param Boolean normalizeSpaces (default: true)
    * @return string
   **/
-  _getInnerText: function (e, normalizeSpaces) {
+  _getInnerText(e, normalizeSpaces) {
     normalizeSpaces = (typeof normalizeSpaces === "undefined") ? true : normalizeSpaces;
     var textContent = e.textContent.trim();
 
@@ -1753,7 +1741,7 @@ Readability.prototype = {
       return textContent.replace(this.REGEXPS.normalize, " ");
     }
     return textContent;
-  },
+  }
 
   /**
    * Get the number of times a string s appears in the node e.
@@ -1762,10 +1750,10 @@ Readability.prototype = {
    * @param string - what to split on. Default is ","
    * @return number (integer)
   **/
-  _getCharCount: function (e, s) {
+  _getCharCount(e, s) {
     s = s || ",";
     return this._getInnerText(e).split(s).length - 1;
-  },
+  }
 
   /**
    * Remove the style attribute on every e and under.
@@ -1774,7 +1762,7 @@ Readability.prototype = {
    * @param Element
    * @return void
   **/
-  _cleanStyles: function (e) {
+  _cleanStyles(e) {
     if (!e || e.tagName.toLowerCase() === "svg")
       return;
 
@@ -1793,7 +1781,7 @@ Readability.prototype = {
       this._cleanStyles(cur);
       cur = cur.nextElementSibling;
     }
-  },
+  }
 
   /**
    * Get the density of links as a percentage of the content
@@ -1802,7 +1790,7 @@ Readability.prototype = {
    * @param Element
    * @return number (float)
   **/
-  _getLinkDensity: function (element) {
+  _getLinkDensity(element) {
     var textLength = this._getInnerText(element).length;
     if (textLength === 0)
       return 0;
@@ -1817,7 +1805,7 @@ Readability.prototype = {
     });
 
     return linkLength / textLength;
-  },
+  }
 
   /**
    * Get an elements class/id weight. Uses regular expressions to tell if this
@@ -1826,7 +1814,7 @@ Readability.prototype = {
    * @param Element
    * @return number (Integer)
   **/
-  _getClassWeight: function (e) {
+  _getClassWeight(e) {
     if (!this._flagIsActive(this.FLAG_WEIGHT_CLASSES))
       return 0;
 
@@ -1851,7 +1839,7 @@ Readability.prototype = {
     }
 
     return weight;
-  },
+  }
 
   /**
    * Clean a node of all elements of type "tag".
@@ -1861,7 +1849,7 @@ Readability.prototype = {
    * @param string tag to clean
    * @return void
    **/
-  _clean: function (e, tag) {
+  _clean(e, tag) {
     var isEmbed = ["object", "embed", "iframe"].indexOf(tag) !== -1;
 
     this._removeNodes(this._getAllNodesWithTag(e, [tag]), function (element) {
@@ -1882,7 +1870,7 @@ Readability.prototype = {
 
       return true;
     });
-  },
+  }
 
   /**
    * Check if a given node has one of its ancestor tag name matching the
@@ -1893,7 +1881,7 @@ Readability.prototype = {
    * @param  Function    filterFn a filter to invoke to determine whether this node 'counts'
    * @return Boolean
    */
-  _hasAncestorTag: function (node, tagName, maxDepth, filterFn) {
+  _hasAncestorTag(node, tagName, maxDepth, filterFn) {
     maxDepth = maxDepth || 3;
     tagName = tagName.toUpperCase();
     var depth = 0;
@@ -1906,12 +1894,12 @@ Readability.prototype = {
       depth++;
     }
     return false;
-  },
+  }
 
   /**
    * Return an object indicating how many rows and columns this table has.
    */
-  _getRowAndColumnCount: function (table) {
+  _getRowAndColumnCount(table) {
     var rows = 0;
     var columns = 0;
     var trs = table.getElementsByTagName("tr");
@@ -1935,14 +1923,14 @@ Readability.prototype = {
       columns = Math.max(columns, columnsInThisRow);
     }
     return { rows: rows, columns: columns };
-  },
+  }
 
   /**
    * Look for 'data' (as opposed to 'layout') tables, for which we use
    * similar checks as
    * https://searchfox.org/mozilla-central/rev/f82d5c549f046cb64ce5602bfd894b7ae807c8f8/accessible/generic/TableAccessible.cpp#19
    */
-  _markDataTables: function (root) {
+  _markDataTables(root) {
     var tables = root.getElementsByTagName("table");
     for (var i = 0; i < tables.length; i++) {
       var table = tables[i];
@@ -1993,10 +1981,10 @@ Readability.prototype = {
       // Now just go by size entirely:
       table._readabilityDataTable = sizeInfo.rows * sizeInfo.columns > 10;
     }
-  },
+  }
 
   /* convert images and figures that have properties like data-src into images that can be loaded without JS */
-  _fixLazyImages: function (root) {
+  _fixLazyImages(root) {
     this._forEachNode(this._getAllNodesWithTag(root, ["img", "picture", "figure"]), function (elem) {
       // In some sites (e.g. Kotaku), they put 1px square image as base64 data uri in the src attribute.
       // So, here we check if the data uri is too short, just might as well remove it.
@@ -2063,9 +2051,9 @@ Readability.prototype = {
         }
       }
     });
-  },
+  }
 
-  _getTextDensity: function (e, tags) {
+  _getTextDensity(e, tags) {
     var textLength = this._getInnerText(e, true).length;
     if (textLength === 0) {
       return 0;
@@ -2074,7 +2062,7 @@ Readability.prototype = {
     var children = this._getAllNodesWithTag(e, tags);
     this._forEachNode(children, (child) => childrenLength += this._getInnerText(child, true).length);
     return childrenLength / textLength;
-  },
+  }
 
   /**
    * Clean an element of all tags of type "tag" if they look fishy.
@@ -2082,7 +2070,7 @@ Readability.prototype = {
    *
    * @return void
    **/
-  _cleanConditionally: function (e, tag) {
+  _cleanConditionally(e, tag) {
     if (!this._flagIsActive(this.FLAG_CLEAN_CONDITIONALLY))
       return;
 
@@ -2187,7 +2175,7 @@ Readability.prototype = {
       }
       return false;
     });
-  },
+  }
 
   /**
    * Clean out elements that match the specified conditions
@@ -2196,7 +2184,7 @@ Readability.prototype = {
    * @param Function determines whether a node should be removed
    * @return void
    **/
-  _cleanMatchedNodes: function (e, filter) {
+  _cleanMatchedNodes(e, filter) {
     var endOfSearchMarkerNode = this._getNextNode(e, true);
     var next = this._getNextNode(e);
     while (next && next != endOfSearchMarkerNode) {
@@ -2206,7 +2194,7 @@ Readability.prototype = {
         next = this._getNextNode(next);
       }
     }
-  },
+  }
 
   /**
    * Clean out spurious headers from an Element.
@@ -2214,7 +2202,7 @@ Readability.prototype = {
    * @param Element
    * @return void
   **/
-  _cleanHeaders: function (e) {
+  _cleanHeaders(e) {
     let headingNodes = this._getAllNodesWithTag(e, ["h1", "h2"]);
     this._removeNodes(headingNodes, function (node) {
       let shouldRemove = this._getClassWeight(node) < 0;
@@ -2223,7 +2211,7 @@ Readability.prototype = {
       }
       return shouldRemove;
     });
-  },
+  }
 
   /**
    * Check if this node is an H1 or H2 element whose content is mostly
@@ -2232,49 +2220,40 @@ Readability.prototype = {
    * @param Element  the node to check.
    * @return boolean indicating whether this is a title-like header.
    */
-  _headerDuplicatesTitle: function (node) {
+  _headerDuplicatesTitle(node) {
     if (node.tagName != "H1" && node.tagName != "H2") {
       return false;
     }
     var heading = this._getInnerText(node, false);
     this.log("Evaluating similarity of header:", heading, this._articleTitle);
     return this._textSimilarity(this._articleTitle, heading) > 0.75;
-  },
+  }
 
-  _flagIsActive: function (flag) {
+  _flagIsActive(flag) {
     return (this._flags & flag) > 0;
-  },
+  }
 
-  _removeFlag: function (flag) {
+  _removeFlag(flag) {
     this._flags = this._flags & ~flag;
-  },
+  }
 
-  _isProbablyVisible: function (node) {
+  _isProbablyVisible(node) {
     // Have to null-check node.style and node.className.indexOf to deal with SVG and MathML nodes.
     return (!node.style || node.style.display != "none")
       && !node.hasAttribute("hidden")
       //check for "fallback-image" so that wikimedia math images are displayed
       && (!node.hasAttribute("aria-hidden") || node.getAttribute("aria-hidden") != "true" || (node.className && node.className.indexOf && node.className.indexOf("fallback-image") !== -1));
-  },
+  }
 
   /**
-   * Runs readability.
-   *
-   * Workflow:
-   *  1. Prep the document by removing script tags, css, etc.
-   *  1。 通过删除脚本标签、css等来准备文档。
-   *  2. Build readability's DOM tree.
-   *  2。 构建可读性的DOM树。
-   *  3. Grab the article content from the current dom tree.
+   * pase流程：
+   *  1。 通过删除脚本标签、css等操作处理 html。
+   *  2。 构建新的DOM树。
    *  3。 从当前dom树中获取文章内容。
-   *  4. Replace the current DOM tree with the new one.
    *  4。 用新的DOM树替换当前的DOM树。
-   *  5. Read peacefully.
-   *  5。 阅读和平。 
-   *
-   * @return void
+   *  5。 输出结果。 
    **/
-  parse: function () {
+  parse() {
     // Avoid parsing too large documents, as per configuration option
     // 避免解析过大的文档，默认是0
     if (this._maxElemsToParse > 0) {
@@ -2340,6 +2319,5 @@ Readability.prototype = {
       siteName: metadata.siteName || this._articleSiteName
     };
   }
-};
 
-export default Readability
+} 
