@@ -1,0 +1,17 @@
+{
+  "name": "article-extractor-for-china",
+  "version": "0.0.1",
+  "author": "valor",
+  "license": "MIT",
+  "description": "支持中文的文章提取",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "keywords": [],
+  "dependencies": {
+    "bellajs": "^11.1.2",
+    "linkedom": "^0.14.25"
+  }
+}
