@@ -1,4 +1,4 @@
-import Readability from './Readability.js'
+import Readability from './readability.js'
 import { DOMParser } from 'linkedom'
 import { isString } from 'bellajs'
 
