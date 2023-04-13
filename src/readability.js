@@ -1,4 +1,8 @@
-import { getAllNodesWithTag, getNextNode, setNodeTag, textSimilarity, wordCount } from "../tools/index.js"
+import {
+  getAllNodesWithTag, getNextNode, hasAncestorTag, isProbablyVisible,
+  isValidByline,
+  removeAndGetNext, setNodeTag, textSimilarity, wordCount
+} from "../tools/index.js"
 
 /**
 *
@@ -41,6 +45,7 @@ export default class Readability {
     /** 一些导航 class */
     negative: /-ad-|hidden|^hid$| hid$| hid |^hid |banner|combx|comment|com-|contact|foot|footer|footnote|gdpr|masthead|media|meta|outbrain|promo|related|scroll|share|shoutbox|sidebar|skyscraper|sponsor|shopping|tags|tool|widget/i,
     extraneous: /print|archive|comment|discuss|e[\-]?mail|share|reply|all|login|sign|single|utility/i,
+    /** 一些可能是作者的class 和 id */
     byline: /byline|author|dateline|writtenby|p-author/i,
     replaceFonts: /<(\/?)font[^>]*>/gi,
     /** 多个空白符 */
@@ -75,7 +80,9 @@ export default class Readability {
   /** 需要删除宽高的标签 */
   DEPRECATED_SIZE_ATTRIBUTE_ELEMS = ["TABLE", "TH", "TD", "HR", "PRE"]
 
-  /** 一些分段的元素，注释掉的元素会在段落处理逻辑中被删除，所以可以忽略 */
+  /** 一些分段的元素，注释掉的元素会在段落处理逻辑中被删除，所以可以忽略 ，出自mozilla文档：
+   * https://developer.mozilla.org/zh-CN/docs/Web/HTML/Content_categories#%E7%9F%AD%E8%AF%AD%E5%86%85%E5%AE%B9
+  */
   PHRASING_ELEMS = [
     // "CANVAS", "IFRAME", "SVG", "VIDEO",
     "ABBR", "AUDIO", "B", "BDO", "BR", "BUTTON", "CITE", "CODE", "DATA",
@@ -330,7 +337,7 @@ export default class Readability {
     while (node) {
       if (node.parentNode && ["DIV", "SECTION"].includes(node.tagName) && !(node.id && node.id.startsWith("readability"))) {
         if (this._isElementWithoutContent(node)) {
-          node = this._removeAndGetNext(node);
+          node = removeAndGetNext(node);
           continue;
         } else if (this._hasSingleTagInsideElement(node, "DIV") || this._hasSingleTagInsideElement(node, "SECTION")) {
           // 如果只有一个就替换掉
@@ -560,13 +567,7 @@ export default class Readability {
     });
   }
 
-  /**
-   * Initialize a node with the readability object. Also checks the
-   * className/id for special names to add to its score.
-   *
-   * @param Element
-   * @return void
-  **/
+  /** 初始化一个节点并计算其class\id的权重 */
   _initializeNode(node) {
     node.readability = { "contentScore": 0 };
 
@@ -606,12 +607,6 @@ export default class Readability {
     node.readability.contentScore += this._getClassWeight(node);
   }
 
-  _removeAndGetNext(node) {
-    let nextNode = getNextNode(node, true);
-    node.parentNode.removeChild(node);
-    return nextNode;
-  }
-
   _checkByline(node, matchString) {
     if (this._articleByline) {
       return false;
@@ -622,7 +617,7 @@ export default class Readability {
       itemprop = node.getAttribute("itemprop");
     }
 
-    if ((rel === "author" || (itemprop && itemprop.indexOf("author") !== -1) || this.REGEXPS.byline.test(matchString)) && this._isValidByline(node.textContent)) {
+    if ((rel === "author" || (itemprop && itemprop.indexOf("author") !== -1) || this.REGEXPS.byline.test(matchString)) && isValidByline(node.textContent)) {
       this._articleByline = node.textContent.trim();
       return true;
     }
@@ -635,140 +630,117 @@ export default class Readability {
     let i = 0, ancestors = [];
     while (node.parentNode) {
       ancestors.push(node.parentNode);
-      if (maxDepth && ++i === maxDepth)
-        break;
+      if (maxDepth && ++i === maxDepth) break;
       node = node.parentNode;
     }
     return ancestors;
   }
 
-  /***
-   * grabArticle - Using a variety of metrics (content score, classname, element types), find the content that is
-   *         most likely to be the stuff a user wants to read. Then return it wrapped up in a div.
-   *
-   * @param page a document to run upon. Needs to be a full document, complete with body.
-   * @return Element
-  **/
+  /** 使用各种指标(内容得分，类名，元素类型)，寻找最合适的内容，返回div元素。 page是一个document.body */
   _grabArticle(page) {
     this.log("**** grabArticle ****");
     let doc = this._doc;
-    let isPaging = page !== null; // false
-    page = page ? page : this._doc.body; // this._doc.body
+    let isPaging = page !== null; // true
+    page = page ? page : this._doc.body;
 
-    // We can't grab an article if we don't have a page!
     if (!page) {
       this.log("No body found in document. Abort.");
       return null;
     }
 
-    // 拿 body 里的 HTML
     let pageCacheHtml = page.innerHTML;
 
     while (true) {
       this.log("Starting grabArticle loop");
-      let stripUnlikelyCandidates = this._flagIsActive(this.FLAG_STRIP_UNLIKELYS); // 每次循环检查一下是否还有不可能标记
+      let stripUnlikelyCandidates = this._flagIsActive(this.FLAG_STRIP_UNLIKELYS); // 每次大循环检查一下是否还有不可能标记
 
-      // First, node prepping. Trash nodes that look cruddy (like ones with the
-      // class name "comment", etc), and turn divs into P tags where they have been
-      // used inappropriately (as in, where they contain no other block level elements.)
-      // 首先，节点准备。 丢弃看起来很糟糕的节点(比如类名为“comment”的节点)，并将div转换为使用不当的P标记(例如，它们不包含其他块级元素)。 
+      // 准备节点。删除不靠谱的节点(比如类名为“comment”的节点)，并将使用不当的div转换为P标签(例如，它们不包含其他块级元素)。 
       let elementsToScore = [];
       let node = this._doc.documentElement;
-
       let shouldRemoveTitleHeader = true;
 
-      while (node) {
-
-        if (node.tagName === "HTML") {
-          this._articleLang = node.getAttribute("lang");
-        }
+      while (node) { // 遍历 node
 
         let matchString = node.className + " " + node.id;
 
-        // 如果是个隐藏的node节点，就删除节点
-        if (!this._isProbablyVisible(node)) {
+        // 删除隐藏的节点
+        if (!isProbablyVisible(node)) {
           this.log("Removing hidden node - " + matchString);
-          node = this._removeAndGetNext(node);
+          node = removeAndGetNext(node);
           continue;
         }
 
-        // User is not able to see elements applied with both "aria-modal = true" and "role = dialog"
-        // 用户不能同时看到“aria-modal = true”和“role = dialog”应用的元素 ；这是bootstrapd的模态框属性，如果是就删除节点
+        // 删除bootstrap的模态框，bootstrap中用户不能同时看到“aria-modal = true”和“role = dialog”的元素；
         if (node.getAttribute("aria-modal") == "true" && node.getAttribute("role") == "dialog") {
-          node = this._removeAndGetNext(node);
+          node = removeAndGetNext(node);
           continue;
         }
 
-        // Check to see if this node is a byline, and remove it if it is.
-        // 利用类名和属性判断当前节点是否是文章署名，如果是就删除节点
+        // 删除作者节点
         if (this._checkByline(node, matchString)) {
-          node = this._removeAndGetNext(node);
+          node = removeAndGetNext(node);
           continue;
         }
 
-        // 检查当前节点是 h1 或者 h2, 判断内容是否和标题有重复，如果是。就认为这是个标题，然后移除
+        // 删除看起来像标题的节点
         if (shouldRemoveTitleHeader && this._headerDuplicatesTitle(node)) {
           this.log("Removing header: ", node.textContent.trim(), this._articleTitle.trim());
           shouldRemoveTitleHeader = false;
-          node = this._removeAndGetNext(node);
+          node = removeAndGetNext(node);
           continue;
         }
 
-        // Remove unlikely candidates
-        // 排除一些不太可能的标签、class、id等
+        // 删除我认为不太可能是内容的节点
         if (stripUnlikelyCandidates) {
           if (this.REGEXPS.unlikelyCandidates.test(matchString) && // 包含不可能的class 和 id
             !this.REGEXPS.okMaybeItsACandidate.test(matchString) && // 不包含可能的class 和 id
-            !this._hasAncestorTag(node, "table") && // node节点向上三级以内有 table // ! 国内有全都是table的站点，这个有问题
-            !this._hasAncestorTag(node, "code") && // node节点向上三级以内有 code
+            !hasAncestorTag(node, "table") && // node节点向上三级以内没有 table
+            !hasAncestorTag(node, "code") && // node节点向上三级以内没有 code
             node.tagName !== "BODY" &&  // node 不是 body
             node.tagName !== "A") {  // node 不是 a
             this.log("Removing unlikely candidate - " + matchString);
-            node = this._removeAndGetNext(node);
+            node = removeAndGetNext(node);
             continue;
           }
 
-          // 排除一些不可能的标签
+          // 删除包含指定role属性的节点
           if (this.UNLIKELY_ROLES.includes(node.getAttribute("role"))) {
             this.log("Removing content with role " + node.getAttribute("role") + " - " + matchString);
-            node = this._removeAndGetNext(node);
+            node = removeAndGetNext(node);
             continue;
           }
         }
 
-        // Remove DIV, SECTION, and HEADER nodes without any content(e.g. text, image, video, or iframe).
-        // 删除特定标签的空标签
+        // 删除一些特定标签的空标签
         if ((node.tagName === "DIV" || node.tagName === "SECTION" || node.tagName === "HEADER" ||
           node.tagName === "H1" || node.tagName === "H2" || node.tagName === "H3" ||
           node.tagName === "H4" || node.tagName === "H5" || node.tagName === "H6") &&
           this._isElementWithoutContent(node)) {
-          node = this._removeAndGetNext(node);
+          node = removeAndGetNext(node);
           continue;
         }
 
-        // node 如果是这些节点的话，加入到统计数组中
+        // 删除完节点，把符合要求的节点加入到计分数组中
         if (this.DEFAULT_TAGS_TO_SCORE.indexOf(node.tagName) !== -1) {
           elementsToScore.push(node);
         }
 
-        // Turn all divs that don't have children block level elements into p's
         // 如果div下没有其他的块级元素。就把div转换为p
         if (node.tagName === "DIV") {
-          // Put phrasing content into paragraphs.
           let p = null;
           let childNode = node.firstChild;
-          while (childNode) {
+          while (childNode) { // 转P标签
             let nextSibling = childNode.nextSibling;
-            if (this._isPhrasingContent(childNode)) {
+            if (this._isPhrasingContent(childNode)) { // 是短语内容标签
               if (p !== null) {
                 p.appendChild(childNode);
-              } else if (!this._isWhitespace(childNode)) {
+              } else if (!this._isWhitespace(childNode)) { // 不是空白内容标签
                 p = doc.createElement("p");
                 node.replaceChild(p, childNode);
                 p.appendChild(childNode);
               }
             } else if (p !== null) {
-              while (p.lastChild && this._isWhitespace(p.lastChild)) {
+              while (p.lastChild && this._isWhitespace(p.lastChild)) { // 删除空白标签
                 p.removeChild(p.lastChild);
               }
               p = null;
@@ -776,16 +748,13 @@ export default class Readability {
             childNode = nextSibling;
           }
 
-          // Sites like http://mobile.slate.com encloses each paragraph with a DIV
-          // element. DIVs with only a P element inside and no text content can be
-          // safely converted into plain P elements to avoid confusing the scoring
-          // algorithm with DIVs with are, in practice, paragraphs.
+          // 如果最后div下只有一个P标签，并且链接密度小于0.25(代表纯文本较多)，直接把p标签提上来代替div
           if (this._hasSingleTagInsideElement(node, "P") && this._getLinkDensity(node) < 0.25) {
             let newNode = node.children[0];
             node.parentNode.replaceChild(newNode, node);
             node = newNode;
             elementsToScore.push(node);
-          } else if (!this._hasChildBlockElement(node)) {
+          } else if (!this._hasChildBlockElement(node)) { // 如果没有块级元素，也直接替换成p
             node = setNodeTag(node, "P");
             elementsToScore.push(node);
           }
@@ -793,38 +762,34 @@ export default class Readability {
         node = getNextNode(node);
       }
 
-      // 循环所有段落，计算评分，评分由逗号数量。class名称。a标签文本密度等 
+      // 循环所有靠谱节点进行计分,向上五层祖先节点全部算在计分范围内
       let candidates = [];
       this._forEachNode(elementsToScore, function (elementToScore) {
-        if (!elementToScore.parentNode || typeof (elementToScore.parentNode.tagName) === "undefined")
-          return;
+        if (!elementToScore.parentNode || typeof (elementToScore.parentNode.tagName) === "undefined") return;
 
-        // 少于25个字的段落不要
+        // 少于25个字的节点不要
         let innerText = this._getInnerText(elementToScore);
-        if (innerText.length < 25)
-          return;
+        if (innerText.length < 25) return;
 
-        // 向上找父节点，没有的话就不要
+        // 向上获取五层祖先节点
         let ancestors = this._getNodeAncestors(elementToScore, 5);
-        if (ancestors.length === 0)
-          return;
+        if (ancestors.length === 0) return;
 
         let contentScore = 0;
 
         // 段落本身 +1 分
         contentScore += 1;
 
-        // 段落有几个标点符号 加几分
+        // 一个逗号 +1 分
         // contentScore += innerText.split(this.REGEXPS.punctuation).length;
-        contentScore += innerText.split(",").length;
+        contentScore += innerText.split("，").length;
 
-        // 每一百个字加一分, 最多加三分
+        // 每一百个字 +1 分, 最多 +3 分
         contentScore += Math.min(Math.floor(innerText.length / 100), 3);
 
         // 初始化node, 给祖先节点评分
         this._forEachNode(ancestors, function (ancestor, level) {
-          if (!ancestor.tagName || !ancestor.parentNode || typeof (ancestor.parentNode.tagName) === "undefined")
-            return;
+          if (!ancestor.tagName || !ancestor.parentNode || typeof (ancestor.parentNode.tagName) === "undefined") return;
 
           if (typeof (ancestor.readability) === "undefined") {
             this._initializeNode(ancestor); // 初始化 并进行一系列打分操作
@@ -832,7 +797,7 @@ export default class Readability {
           }
 
           // 距离当前节点越远，分数越底
-          // 父节点 1 祖父节点 2 其他节点为层级的3倍
+          // 比例为：父节点 1 、祖父节点 2 、其他节点为层级 * 3
           let scoreDivider;
           if (level === 0) {
             scoreDivider = 1;
@@ -845,65 +810,55 @@ export default class Readability {
         });
       });
 
-      // After we've calculated scores, loop through all of the possible
-      // candidate nodes we found and find the one with the highest score.
-      // 找出来一个得分最高的节点 - 最佳节点
+      // 按照得分寻找多个最佳节点
       let topCandidates = [];
       for (let c = 0, cl = candidates.length; c < cl; c += 1) {
         let candidate = candidates[c];
 
-        // Scale the final candidates score based on link density. Good content
-        // should have a relatively small link density (5% or less) and be mostly
-        // unaffected by this operation.
-        // 链接密度 要小于5%
+        // 更好的内容的链接密度应该要小于5%
         let candidateScore = candidate.readability.contentScore * (1 - this._getLinkDensity(candidate));
         candidate.readability.contentScore = candidateScore;
 
         this.log("Candidate:", candidate, "with score " + candidateScore);
 
-        for (let t = 0; t < this._nbTopCandidates; t++) {
+        for (let t = 0; t < this._nbTopCandidates; t++) { // 只选择指定的候选人数量，选出分最高的
           let aTopCandidate = topCandidates[t];
 
           if (!aTopCandidate || candidateScore > aTopCandidate.readability.contentScore) {
             topCandidates.splice(t, 0, candidate);
-            if (topCandidates.length > this._nbTopCandidates)
+            if (topCandidates.length > this._nbTopCandidates) {
               topCandidates.pop();
+            }
             break;
           }
         }
       }
 
       let topCandidate = topCandidates[0] || null;
+      /** 标记是否需要创建顶级候选人 */
       let neededToCreateTopCandidate = false;
       let parentOfTopCandidate;
 
-      // If we still have no top candidate, just use the body as a last resort.
-      // We also have to copy the body node so it is something we can modify.
-      // 找不到的话，最佳节点就是body
+      // 最佳节点如果没找到，或者最佳节点是body，就把body里的所有东西都搞到topCandidate里。
       if (topCandidate === null || topCandidate.tagName === "BODY") {
-        // Move all of the page's children into topCandidate
         topCandidate = doc.createElement("DIV");
         neededToCreateTopCandidate = true;
-        // Move everything (not just elements, also text nodes etc.) into the container
-        // so we even include text directly in the body:
         while (page.firstChild) {
           this.log("Moving child out:", page.firstChild);
           topCandidate.appendChild(page.firstChild);
         }
-
         page.appendChild(topCandidate);
-
+        // 重新计算权重
         this._initializeNode(topCandidate);
       } else if (topCandidate) {
-        // Find a better top candidate node if it contains (at least three) nodes which belong to `topCandidates` array
-        // and whose scores are quite closed with current `topCandidate` node.
-        // 如果它包含(至少三个)属于' topcandidate '数组的节点并且其分数与当前的“topCandidate”节点非常接近。 就找一个更好的
+        // 在topCandidates里找到跟最佳节点分数相近的节点
         let alternativeCandidateAncestors = [];
         for (let i = 1; i < topCandidates.length; i++) {
           if (topCandidates[i].readability.contentScore / topCandidate.readability.contentScore >= 0.75) {
             alternativeCandidateAncestors.push(this._getNodeAncestors(topCandidates[i]));
           }
         }
+        // 向上找到满足条件的节点超过三个（1个2个没有对比的必要），看看他们的祖先节点数组是否包含最佳节点，把最佳节点重置
         let MINIMUM_TOPCANDIDATES = 3;
         if (alternativeCandidateAncestors.length >= MINIMUM_TOPCANDIDATES) {
           parentOfTopCandidate = topCandidate.parentNode;
@@ -923,16 +878,9 @@ export default class Readability {
           this._initializeNode(topCandidate);
         }
 
-        // Because of our bonus system, parents of candidates might have scores
-        // themselves. They get half of the node. There won't be nodes with higher
-        // scores than our topCandidate, but if we see the score going *up* in the first
-        // few steps up the tree, that's a decent sign that there might be more content
-        // lurking in other places that we want to unify in. The sibling stuff
-        // below does some of that - but only if we've looked high enough up the DOM
-        // tree.
+        // 贪心策略，继续尝试获取更高层的dom. 找一下更高层有没有计算过分数的节点
         parentOfTopCandidate = topCandidate.parentNode;
         let lastScore = topCandidate.readability.contentScore;
-        // The scores shouldn't get too low.
         let scoreThreshold = lastScore / 3;
         while (parentOfTopCandidate.tagName !== "BODY") {
           if (!parentOfTopCandidate.readability) {
@@ -940,10 +888,8 @@ export default class Readability {
             continue;
           }
           let parentScore = parentOfTopCandidate.readability.contentScore;
-          if (parentScore < scoreThreshold)
-            break;
+          if (parentScore < scoreThreshold) break;
           if (parentScore > lastScore) {
-            // Alright! We found a better parent to use.
             topCandidate = parentOfTopCandidate;
             break;
           }
@@ -951,9 +897,7 @@ export default class Readability {
           parentOfTopCandidate = parentOfTopCandidate.parentNode;
         }
 
-        // If the top candidate is the only child, use parent instead. This will help sibling
-        // joining logic when adjacent content is actually located in parent's sibling node.
-        // 如果最佳节点是独立节点，就需要使用它的父节点代替
+        // 贪心策略，继续尝试获取更高层的dom. 如果当前最佳节点是独立节点，把它的父节点作为最佳节点
         parentOfTopCandidate = topCandidate.parentNode;
         while (parentOfTopCandidate.tagName != "BODY" && parentOfTopCandidate.children.length == 1) {
           topCandidate = parentOfTopCandidate;
@@ -969,8 +913,9 @@ export default class Readability {
       // that we removed, etc.
       // 找到最佳节点后，通过兄弟姐妹节点查找相关内容
       let articleContent = doc.createElement("DIV");
-      if (isPaging)
+      if (isPaging) {
         articleContent.id = "readability-content";
+      }
 
       let siblingScoreThreshold = Math.max(10, topCandidate.readability.contentScore * 0.2);
       // Keep potential top candidate's parent node to try to get text direction of it later.
@@ -1119,22 +1064,6 @@ export default class Readability {
     }
   }
 
-  /**
-   * Check whether the input string could be a byline.
-   * This verifies that the input is a string, and that the length
-   * is less than 100 chars.
-   *
-   * @param possibleByline {string} - a string to check whether its a byline.
-   * @return Boolean - whether the input string is a byline.
-   */
-  _isValidByline(byline) {
-    if (typeof byline == "string" || byline instanceof String) {
-      byline = byline.trim();
-      return (byline.length > 0) && (byline.length < 100);
-    }
-    return false;
-  }
-
   /** 将字符串中的一些常见HTML实体转换为相应的字符。返回新的字符串  */
   _unescapeHtmlEntities(str) {
     if (!str) {
@@ -1272,26 +1201,17 @@ export default class Readability {
         node.children.length == node.getElementsByTagName("br").length + node.getElementsByTagName("hr").length);
   }
 
-  /**
-   * Determine whether element has any children block level elements.
-   *
-   * @param Element
-   */
+  /** 确定元素是否有子块级元素。  */
   _hasChildBlockElement(element) {
     return this._someNode(element.childNodes, function (node) {
-      return this.DIV_TO_P_ELEMS.has(node.tagName) ||
-        this._hasChildBlockElement(node);
+      return this.DIV_TO_P_ELEMS.has(node.tagName) || this._hasChildBlockElement(node);
     });
   }
 
-  /***
-   * Determine if a node qualifies as phrasing content.
-   * https://developer.mozilla.org/en-US/docs/Web/Guide/HTML/Content_categories#Phrasing_content
-  **/
+  /** 判断节点是不是短语内容 phrasing content. */
   _isPhrasingContent(node) {
     return node.nodeType === this.TEXT_NODE || this.PHRASING_ELEMS.indexOf(node.tagName) !== -1 ||
-      ((node.tagName === "A" || node.tagName === "DEL" || node.tagName === "INS") &&
-        this._everyNode(node.childNodes, this._isPhrasingContent));
+      ((node.tagName === "A" || node.tagName === "DEL" || node.tagName === "INS") && this._everyNode(node.childNodes, this._isPhrasingContent));
   }
 
   _isWhitespace(node) {
@@ -1357,13 +1277,7 @@ export default class Readability {
     }
   }
 
-  /**
-   * Get the density of links as a percentage of the content
-   * This is the amount of text that is inside a link divided by the total text in the node.
-   *
-   * @param Element
-   * @return number (float)
-  **/
+  /** 获取链接密度占内容的百分比；链接内的文本量除以节点中的文本总数。  */
   _getLinkDensity(element) {
     let textLength = this._getInnerText(element).length;
     if (textLength === 0)
@@ -1374,7 +1288,7 @@ export default class Readability {
     // XXX implement _reduceNodeList?
     this._forEachNode(element.getElementsByTagName("a"), function (linkNode) {
       let href = linkNode.getAttribute("href");
-      let coefficient = href && this.REGEXPS.hashUrl.test(href) ? 0.3 : 1;
+      let coefficient = href && this.REGEXPS.hashUrl.test(href) ? 0.3 : 1; // 锚点链接的系数要低一些
       linkLength += this._getInnerText(linkNode).length * coefficient;
     });
 
@@ -1444,30 +1358,6 @@ export default class Readability {
 
       return true;
     });
-  }
-
-  /**
-   * Check if a given node has one of its ancestor tag name matching the
-   * provided one.
-   * @param  HTMLElement node
-   * @param  String      tagName
-   * @param  Number      maxDepth
-   * @param  Function    filterFn a filter to invoke to determine whether this node 'counts'
-   * @return Boolean
-   */
-  _hasAncestorTag(node, tagName, maxDepth, filterFn) {
-    maxDepth = maxDepth || 3;
-    tagName = tagName.toUpperCase();
-    let depth = 0;
-    while (node.parentNode) {
-      if (maxDepth > 0 && depth > maxDepth)
-        return false;
-      if (node.parentNode.tagName === tagName && (!filterFn || filterFn(node.parentNode)))
-        return true;
-      node = node.parentNode;
-      depth++;
-    }
-    return false;
   }
 
   /**
@@ -1672,11 +1562,11 @@ export default class Readability {
       }
 
       // Next check if we're inside a data table, in which case don't remove it as well.
-      if (this._hasAncestorTag(node, "table", -1, isDataTable)) {
+      if (hasAncestorTag(node, "table", -1, isDataTable)) {
         return false;
       }
 
-      if (this._hasAncestorTag(node, "code")) {
+      if (hasAncestorTag(node, "code")) {
         return false;
       }
 
@@ -1723,10 +1613,10 @@ export default class Readability {
         let contentLength = this._getInnerText(node).length;
 
         let haveToRemove =
-          (img > 1 && p / img < 0.5 && !this._hasAncestorTag(node, "figure")) ||
+          (img > 1 && p / img < 0.5 && !hasAncestorTag(node, "figure")) ||
           (!isList && li > p) ||
           (input > Math.floor(p / 3)) ||
-          (!isList && headingDensity < 0.9 && contentLength < 25 && (img === 0 || img > 2) && !this._hasAncestorTag(node, "figure")) ||
+          (!isList && headingDensity < 0.9 && contentLength < 25 && (img === 0 || img > 2) && !hasAncestorTag(node, "figure")) ||
           (!isList && weight < 25 && linkDensity > 0.2) ||
           (weight >= 25 && linkDensity > 0.5) ||
           ((embedCount === 1 && contentLength < 75) || embedCount > 1);
@@ -1763,7 +1653,7 @@ export default class Readability {
     let next = getNextNode(e);
     while (next && next != endOfSearchMarkerNode) {
       if (filter.call(this, next, next.className + " " + next.id)) {
-        next = this._removeAndGetNext(next);
+        next = removeAndGetNext(next);
       } else {
         next = getNextNode(next);
       }
@@ -1802,13 +1692,6 @@ export default class Readability {
     this._flags = this._flags & ~flag;
   }
 
-  /** 判断 node 可能是可见的 */
-  _isProbablyVisible(node) {
-    return (!node.style || node.style.display != "none") // style 
-      && !node.hasAttribute("hidden") // attr
-      && (!node.hasAttribute("aria-hidden") || node.getAttribute("aria-hidden") != "true"); // 无障碍属性
-  }
-
   /**
    * pase流程：
    *  1。 通过删除脚本标签、css等操作处理 html。
@@ -1835,7 +1718,7 @@ export default class Readability {
     this._prepDocument();
 
     // 获取元数据 
-    // ! 针对学校页面进行一些meta标签的收集与统计 // TODO 4-13
+    // ! 针对学校页面进行一些meta标签的收集与统计
     let metadata = this._getArticleMetadata();
     this._articleTitle = metadata.title;
 
@@ -1849,9 +1732,7 @@ export default class Readability {
     // 转换相对地址、去除空白标签
     this._postProcessContent(articleContent);
 
-    // If we haven't found an excerpt in the article's metadata, use the article's
-    // first paragraph as the excerpt. This is used for displaying a preview of
-    // the article's content.
+    // 没找到文章节选的话，就用第一段
     if (!metadata.excerpt) {
       let paragraphs = articleContent.getElementsByTagName("p");
       if (paragraphs.length > 0) {
@@ -1864,7 +1745,6 @@ export default class Readability {
       title: this._articleTitle,
       author: metadata.byline || this._articleByline,
       dir: this._articleDir,
-      lang: this._articleLang,
       content: this._serializer(articleContent),
       textContent: textContent,
       length: textContent.length,

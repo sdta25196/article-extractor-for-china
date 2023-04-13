@@ -25,7 +25,7 @@ export const getAllNodesWithTag = (node, tagNames) => {
   }));
 }
 
-/** 获取下一个节点，第二个参数为true则返回兄弟节点 */
+/** dfs 获取下一个节点，如果第二个参数为true则返回兄弟节点 */
 export const getNextNode = (node, ignoreSelfAndKids) => {
   if (!ignoreSelfAndKids && node.firstElementChild) {
     return node.firstElementChild;
@@ -39,6 +39,19 @@ export const getNextNode = (node, ignoreSelfAndKids) => {
     node = node.parentNode;
   } while (node && !node.nextElementSibling);
   return node && node.nextElementSibling;
+}
+
+export const removeAndGetNext = (node) => {
+  let nextNode = getNextNode(node, true);
+  node.parentNode.removeChild(node);
+  return nextNode;
+}
+
+/** 判断 node 可能是可见的 */
+export const isProbablyVisible = (node) => {
+  return (!node.style || node.style.display != "none") // style 
+    && !node.hasAttribute("hidden") // attr
+    && (!node.hasAttribute("aria-hidden") || node.getAttribute("aria-hidden") != "true"); // 无障碍属性
 }
 
 /** 把 node 替换为 tag, 返回新的节点 */
@@ -69,4 +82,36 @@ export const concatNodeLists = () => {
     return slice.call(list);
   });
   return Array.prototype.concat.apply([], nodeLists);
+}
+
+/** 长度小于20的字符串才有可能是作者 */
+export const isValidByline = (byline) => {
+  if (typeof byline == "string" || byline instanceof String) {
+    byline = byline.trim();
+    return (byline.length > 0) && (byline.length < 20);
+  }
+  return false;
+}
+
+/**
+  * 检查节点祖先是否拥有指定标签
+  * @param  HTMLElement node
+  * @param  String      tagName
+  * @param  Number      maxDepth
+  * @param  Function    找到标签后的附加判断逻辑
+  * @return Boolean
+  */
+export const hasAncestorTag = (node, tagName, maxDepth, filterFn) => {
+  maxDepth = maxDepth || 3;
+  tagName = tagName.toUpperCase();
+  let depth = 0;
+  while (node.parentNode) {
+    if (maxDepth > 0 && depth > maxDepth)
+      return false;
+    if (node.parentNode.tagName === tagName && (!filterFn || filterFn(node.parentNode)))
+      return true;
+    node = node.parentNode;
+    depth++;
+  }
+  return false;
 }

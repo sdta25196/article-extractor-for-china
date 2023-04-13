@@ -1,4 +1,5 @@
 import Readability from './readability.js'
+// import Readability from './old_readability.js'
 import getHTML from './get-html.js'
 import { DOMParser } from 'linkedom'
 import { isString } from 'bellajs'
@@ -40,13 +41,17 @@ const run = (html, inputUrl = '') => {
 // const url = 'https://www.tsinghua.edu.cn/info/1181/60298.htm'
 // const url = 'https://physics.nju.edu.cn/xwgg/qnjssl/20230316/i240330.html'
 // ! 阮一峰
-const url = 'https://www.ruanyifeng.com/blog/2023/04/weekly-issue-249.html'
+// const url = 'https://www.ruanyifeng.com/blog/2023/04/weekly-issue-249.html'
+// ! 常规
+const url = 'https://news.nju.edu.cn/zhxw/20230404/i112453.html'
+
 
 
 console.time("请求耗时")
 let html = await getHTML(url)
 console.timeEnd("请求耗时")
 console.time("分析耗时")
+// html = '<html><body><div class="article_mbx fl"><a href="/">首页</a>  - <a href="https://news.nju.edu.cn/zhxw/index.html">综合新闻</a></div></body></html>'
 const c = run(html, url)
 console.timeEnd("分析耗时")
 
