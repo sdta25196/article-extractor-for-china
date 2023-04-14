@@ -1,7 +1,7 @@
 import {
   cleanStyles, isValidByline,
   getAllNodesWithTag, getInnerText, getNextNode, hasAncestorTag, isProbablyVisible,
-  removeAndGetNext, setNodeTag, textSimilarity, wordCount
+  removeAndGetNext, setNodeTag, textSimilarity, wordCount, getCharCount
 } from "../tools/index.js"
 import { REGEXPS } from "./type.js"
 
