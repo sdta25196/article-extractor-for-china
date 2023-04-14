@@ -1,10 +1,12 @@
+import { DEPRECATED_SIZE_ATTRIBUTE_ELEMS, PRESENTATIONAL_ATTRIBUTES, REGEXPS } from "../src/type.js";
+
 /** 计算字数 */
 export const wordCount = (str) => str.length
 
 /** 对比两个文本，返回 0-1的数字， 0完全不同，1完全相同 */
 export const textSimilarity = (textA, textB) => {
-  let tokensA = textA.toLowerCase().split(/\W+/g).filter(Boolean);
-  let tokensB = textB.toLowerCase().split(/\W+/g).filter(Boolean);
+  let tokensA = textA.toLowerCase().split(REGEXPS.tokenize).filter(Boolean);
+  let tokensB = textB.toLowerCase().split(REGEXPS.tokenize).filter(Boolean);
   if (!tokensA.length || !tokensB.length) {
     return 0;
   }
@@ -114,4 +116,53 @@ export const hasAncestorTag = (node, tagName, maxDepth, filterFn) => {
     depth++;
   }
   return false;
+}
+
+/** 获取节点内容，normalizeSpaces 为是否删除多余的空白，默认true */
+export const getInnerText = (e, normalizeSpaces = true) => {
+  let textContent = e.textContent.trim();
+
+  if (normalizeSpaces) {
+    return textContent.replace(REGEXPS.normalize, " ");
+  }
+  return textContent;
+}
+
+/** 清除样式属性 // TODO 可能 getElementsByTagName(*) 更快 */
+export const cleanStyles = (e) => {
+  if (!e || e.tagName.toLowerCase() === "svg") return;
+
+  // 删除 style 和弃用属性
+  for (let i = 0; i < PRESENTATIONAL_ATTRIBUTES.length; i++) {
+    e.removeAttribute(PRESENTATIONAL_ATTRIBUTES[i]);
+  }
+
+  if (DEPRECATED_SIZE_ATTRIBUTE_ELEMS.indexOf(e.tagName) !== -1) {
+    e.removeAttribute("width");
+    e.removeAttribute("height");
+  }
+
+  let cur = e.firstElementChild;
+  while (cur !== null) {
+    cleanStyles(cur);
+    cur = cur.nextElementSibling;
+  }
+}
+
+/** 获取字符串s在节点中出现的次数 */
+export const getCharCount = (e, s) => {
+  return getInnerText(e).split(s).length - 1;
+}
+
+/** 检查节点是否为图像，或者节点是否仅包含一个图像，无论是作为直接子图像还是作为其后代图像。  */
+export const isSingleImage = (node) => {
+  if (node.tagName === "IMG") {
+    return true;
+  }
+
+  if (node.children.length !== 1 || node.textContent.trim() !== "") {
+    return false;
+  }
+
+  return isSingleImage(node.children[0]);
 }

@@ -26,7 +26,7 @@ const run = (html, inputUrl = '') => {
 // const url = 'https://zs.jmi.edu.cn/3c/5e/c1702a80990/page.htm'
 // ! 文案非常短的，默认提取不到. contentLengthThreshold 设置小一些就可以。但是会出现误差。
 // ! title 中的标题不正确
-// const url = 'https://xsxy.nju.edu.cn/jyjx/rcpy/20201126/i170797.html'
+const url = 'https://xsxy.nju.edu.cn/jyjx/rcpy/20201126/i170797.html'
 // ! 全是 table 的
 // const url = 'https://bmf.sumhs.edu.cn/1c/98/c3460a269464/page.htm'
 // ! 标题带短横杠的
@@ -43,7 +43,7 @@ const run = (html, inputUrl = '') => {
 // ! 阮一峰
 // const url = 'https://www.ruanyifeng.com/blog/2023/04/weekly-issue-249.html'
 // ! 常规
-const url = 'https://news.nju.edu.cn/zhxw/20230404/i112453.html'
+// const url = 'https://news.nju.edu.cn/zhxw/20230404/i112453.html'
 
 
 
