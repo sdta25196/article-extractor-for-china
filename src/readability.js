@@ -51,6 +51,8 @@ export default class Readability {
 
     /** 调试模式 */
     this._debug = !!options.debug;
+    this.log = this._debug ? debugLog : releaseLog
+
     /** 可处理文档的最大元素数，超出抛异常，默认 0，不限制。 */
     this._maxElemsToParse = options.maxElemsToParse || DEFAULT_MAX_ELEMS_TO_PARSE;
     /** 挑选最佳节点时的候选数量 默认 5 */
@@ -65,12 +67,8 @@ export default class Readability {
     this._serializer = options.serializer || (el => el.innerHTML)
     /** 匹配视频网站的的正则表达式 */
     this._allowedVideoRegex = options.allowedVideoRegex || REGEXPS.videos;
-
-    /** 初始设置所有标志 7 */
+    /** 初始设置所有标志 */
     this._flags = this.FLAG_STRIP_UNLIKELYS | this.FLAG_WEIGHT_CLASSES | this.FLAG_CLEAN_CONDITIONALLY;
-
-    // debug 模式控制台
-    this.log = this._debug ? debugLog : releaseLog
   }
 
   /** 确定文章内容后进行的处理、转义相对地址，删除空白标签，清空class */
@@ -823,12 +821,12 @@ export default class Readability {
         }
       }
 
-      if (this._debug) this.log("Article content pre-prep: " + articleContent.innerHTML);
+      this.log("Article content pre-prep: " + articleContent.innerHTML);
 
       // 搞到最佳节点之后，开始清理节点
       this._prepArticle(articleContent);
 
-      if (this._debug) this.log("Article content post-prep: " + articleContent.innerHTML);
+      this.log("Article content post-prep: " + articleContent.innerHTML);
 
       // 处理成带 page 的类型
       if (neededToCreateTopCandidate) {
@@ -845,7 +843,7 @@ export default class Readability {
         articleContent.appendChild(div);
       }
 
-      if (this._debug) this.log("Article content after paging: " + articleContent.innerHTML);
+      this.log("Article content after paging: " + articleContent.innerHTML);
 
       let parseSuccessful = true;
 
