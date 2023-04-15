@@ -422,9 +422,17 @@ export default class Readability {
 
   /** 初始化一个节点并计算其class\id的权重 */
   _initializeNode(node) {
-    node.readability = { "contentScore": 0 };
+    node.readability = { contentScore: 0 };
 
     switch (node.tagName) {
+      case 'ARTICLE':
+        node.readability.contentScore += 10;
+        break;
+
+      case 'SECTION':
+        node.readability.contentScore += 8;
+        break;
+
       case "DIV":
         node.readability.contentScore += 5;
         break;
