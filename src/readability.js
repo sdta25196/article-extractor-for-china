@@ -1,9 +1,13 @@
 import {
-  cleanStyles, isValidByline,
-  getAllNodesWithTag, getInnerText, getNextNode, hasAncestorTag, isProbablyVisible,
-  removeAndGetNext, setNodeTag, textSimilarity, wordCount, getCharCount
+  cleanStyles, isValidByline, getAllNodesWithTag, getInnerText, getNextNode,
+  hasAncestorTag, isProbablyVisible, removeAndGetNext, setNodeTag, textSimilarity,
+  wordCount, getCharCount, debugLog, releaseLog
 } from "../tools/index.js"
-import { REGEXPS } from "./type.js"
+import {
+  ALTER_TO_DIV_EXCEPTIONS, DEFAULT_CHAR_THRESHOLD, DEFAULT_MAX_ELEMS_TO_PARSE,
+  DEFAULT_N_TOP_CANDIDATES, DEFAULT_TAGS_TO_SCORE, DIV_TO_P_ELEMS, ELEMENT_NODE,
+  HTML_ESCAPE_MAP, PHRASING_ELEMS, REGEXPS, TEXT_NODE, UNLIKELY_ROLES
+} from "./type.js"
 
 /**
 *
@@ -15,74 +19,24 @@ import { REGEXPS } from "./type.js"
 *
 */
 export default class Readability {
-  /** 不太可能标记 1 */
   FLAG_STRIP_UNLIKELYS = 0x1
-  /** 权重class标记 2 */
   FLAG_WEIGHT_CLASSES = 0x2
-  /** 清除条件标记 4 */
   FLAG_CLEAN_CONDITIONALLY = 0x4
-
-  /** 元素 nodeType === 1 */
-  ELEMENT_NODE = 1
-  /** 文本元素 nodeType === 3 */
-  TEXT_NODE = 3
-
-  DEFAULT_MAX_ELEMS_TO_PARSE = 0
-
-  DEFAULT_N_TOP_CANDIDATES = 5
-
-  /** 这些元素标记评分 */
-  DEFAULT_TAGS_TO_SCORE = "section,h2,h3,h4,h5,h6,p,td,pre".toUpperCase().split(",")
-
-  DEFAULT_CHAR_THRESHOLD = 500
-
-
-
-  /** 不可能的 role 属性 */
-  UNLIKELY_ROLES = ["menu", "menubar", "complementary", "navigation", "alert", "alertdialog", "dialog"]
-
-  /** 一些块级元素 */
-  DIV_TO_P_ELEMS = new Set(["BLOCKQUOTE", "DL", "DIV", "IMG", "OL", "P", "PRE", "TABLE", "UL"])
-
-  /** 常见的包裹文章的块级元素 */
-  ALTER_TO_DIV_EXCEPTIONS = ["DIV", "ARTICLE", "SECTION", "P"]
-
-
-  /** 一些分段的元素，注释掉的元素会在段落处理逻辑中被删除，所以可以忽略 ，出自mozilla文档：
-   * https://developer.mozilla.org/zh-CN/docs/Web/HTML/Content_categories#%E7%9F%AD%E8%AF%AD%E5%86%85%E5%AE%B9
-  */
-  PHRASING_ELEMS = [
-    // "CANVAS", "IFRAME", "SVG", "VIDEO",
-    "ABBR", "AUDIO", "B", "BDO", "BR", "BUTTON", "CITE", "CODE", "DATA",
-    "DATALIST", "DFN", "EM", "EMBED", "I", "IMG", "INPUT", "KBD", "LABEL",
-    "MARK", "MATH", "METER", "NOSCRIPT", "OBJECT", "OUTPUT", "PROGRESS", "Q",
-    "RUBY", "SAMP", "SCRIPT", "SELECT", "SMALL", "SPAN", "STRONG", "SUB",
-    "SUP", "TEXTAREA", "TIME", "VAR", "WBR"
-  ]
 
   CLASSES_TO_PRESERVE = ["page"]
 
-  /** html实体转换列表 */
-  HTML_ESCAPE_MAP = {
-    "lt": "<",
-    "gt": ">",
-    "amp": "&",
-    "quot": '"',
-    "apos": "'",
-  }
-
   constructor(doc, options = {
-    debug: false,
-    maxElemsToParse: "",
-    nbTopCandidates: "",
-    charThreshold: "",
-    classesToPreserve: "",
-    keepClasses: "",
-    serializer: "",
-    allowedVideoRegex: "",
+    debug,
+    maxElemsToParse,
+    nbTopCandidates,
+    charThreshold,
+    classesToPreserve,
+    keepClasses,
+    serializer,
+    allowedVideoRegex,
   }) {
     if (!doc || !doc.documentElement) {
-      throw new Error("First argument to Readability constructor should be a document object.");
+      throw new Error("第一个参数必须传入一个doc对象");
     }
 
     this._doc = doc;
@@ -97,20 +51,18 @@ export default class Readability {
 
     /** 调试模式 */
     this._debug = !!options.debug;
-    /** 可处理文档的最大节点数，超出抛异常，默认 0，不限制。 */
-    this._maxElemsToParse = options.maxElemsToParse || this.DEFAULT_MAX_ELEMS_TO_PARSE;
+    /** 可处理文档的最大元素数，超出抛异常，默认 0，不限制。 */
+    this._maxElemsToParse = options.maxElemsToParse || DEFAULT_MAX_ELEMS_TO_PARSE;
     /** 挑选最佳节点时的候选数量 默认 5 */
-    this._nbTopCandidates = options.nbTopCandidates || this.DEFAULT_N_TOP_CANDIDATES;
+    this._nbTopCandidates = options.nbTopCandidates || DEFAULT_N_TOP_CANDIDATES;
     /** 文章默认字数，默认 500 */
-    this._charThreshold = options.charThreshold || this.DEFAULT_CHAR_THRESHOLD;
+    this._charThreshold = options.charThreshold || DEFAULT_CHAR_THRESHOLD;
     /** 清空class的时候排除这个数组中的class，默认 ["page"] */
     this._classesToPreserve = this.CLASSES_TO_PRESERVE.concat(options.classesToPreserve || []);
     /** 是否保留class, 如果设置为false，就会清空class, 默认 false */
     this._keepClasses = !!options.keepClasses;
     /** dom格式化函数, 默认为取 dom 的 innerHTML */
-    this._serializer = options.serializer || function (el) {
-      return el.innerHTML;
-    };
+    this._serializer = options.serializer || (el => el.innerHTML)
     /** 匹配视频网站的的正则表达式 */
     this._allowedVideoRegex = options.allowedVideoRegex || REGEXPS.videos;
 
@@ -118,37 +70,7 @@ export default class Readability {
     this._flags = this.FLAG_STRIP_UNLIKELYS | this.FLAG_WEIGHT_CLASSES | this.FLAG_CLEAN_CONDITIONALLY;
 
     // debug 模式控制台
-    if (this._debug) {
-      let logNode = function (node) {
-        if (node.nodeType == node.TEXT_NODE) {
-          return `${node.nodeName} ("${node.textContent}")`;
-        }
-        let attrPairs = Array.from(node.attributes || [], function (attr) {
-          return `${attr.name}="${attr.value}"`;
-        }).join(" ");
-        return `<${node.localName} ${attrPairs}>`;
-      };
-      this.log = function () {
-        if (typeof console !== "undefined") {
-          let args = Array.from(arguments, arg => {
-            if (arg && arg.nodeType == this.ELEMENT_NODE) {
-              return logNode(arg);
-            }
-            return arg;
-          });
-          args.unshift("Reader: (Readability)");
-          console.log.apply(console, args);
-        } else if (typeof dump !== "undefined") {
-          /* global dump */
-          let msg = Array.prototype.map.call(arguments, function (x) {
-            return (x && x.nodeName) ? logNode(x) : x;
-          }).join(" ");
-          dump("Reader: (Readability) " + msg + "\n");
-        }
-      };
-    } else {
-      this.log = function () { };
-    }
+    this.log = this._debug ? debugLog : releaseLog
   }
 
   /** 确定文章内容后进行的处理、转义相对地址，删除空白标签，清空class */
@@ -249,7 +171,7 @@ export default class Readability {
         // 删除无效跳转地址
         if (href.indexOf("javascript:") === 0) {
           // 如果链接只包含简单的文本内容，则可以将其转换为文本节点 
-          if (link.childNodes.length === 1 && link.childNodes[0].nodeType === this.TEXT_NODE) {
+          if (link.childNodes.length === 1 && link.childNodes[0].nodeType === TEXT_NODE) {
             let text = this._doc.createTextNode(link.textContent);
             link.parentNode.replaceChild(text, link);
           } else {
@@ -375,7 +297,7 @@ export default class Readability {
   _nextNode(node) {
     let next = node;
     while (next
-      && (next.nodeType != this.ELEMENT_NODE)
+      && (next.nodeType != ELEMENT_NODE)
       && REGEXPS.whitespace.test(next.textContent)) {
       next = next.nextSibling;
     }
@@ -446,7 +368,7 @@ export default class Readability {
     this._clean(articleContent, "aside");
 
     // 删除最佳节点中带有分享属性的节点
-    let shareElementThreshold = this.DEFAULT_CHAR_THRESHOLD;
+    let shareElementThreshold = DEFAULT_CHAR_THRESHOLD;
 
     this._forEachNode(articleContent.children, function (topCandidate) {
       this._cleanMatchedNodes(topCandidate, function (node, matchString) {
@@ -637,7 +559,7 @@ export default class Readability {
           }
 
           // 删除包含指定role属性的节点
-          if (this.UNLIKELY_ROLES.includes(node.getAttribute("role"))) {
+          if (UNLIKELY_ROLES.includes(node.getAttribute("role"))) {
             this.log("Removing content with role " + node.getAttribute("role") + " - " + matchString);
             node = removeAndGetNext(node);
             continue;
@@ -654,7 +576,7 @@ export default class Readability {
         }
 
         // 删除完节点，把符合要求的节点加入到计分数组中
-        if (this.DEFAULT_TAGS_TO_SCORE.indexOf(node.tagName) !== -1) {
+        if (DEFAULT_TAGS_TO_SCORE.indexOf(node.tagName) !== -1) {
           elementsToScore.push(node);
         }
 
@@ -887,7 +809,7 @@ export default class Readability {
         // 当前兄弟节点是更好的节点，且它不是常见块级元素的话，改成div
         if (append) {
           this.log("Appending node:", sibling);
-          if (this.ALTER_TO_DIV_EXCEPTIONS.indexOf(sibling.nodeName) === -1) {
+          if (ALTER_TO_DIV_EXCEPTIONS.indexOf(sibling.nodeName) === -1) {
             this.log("Altering sibling:", sibling, "to div.");
             sibling = setNodeTag(sibling, "DIV");
           }
@@ -971,7 +893,7 @@ export default class Readability {
       return str;
     }
 
-    let htmlEscapeMap = this.HTML_ESCAPE_MAP;
+    let htmlEscapeMap = HTML_ESCAPE_MAP;
     return str.replace(/&(quot|amp|apos|lt|gt);/g, function (_, tag) {  // > < 等
       return htmlEscapeMap[tag];
     }).replace(/&#(?:x([0-9a-z]{1,4})|([0-9]{1,4}));/gi, function (_, hex, numStr) { // &#60  &#x2564
@@ -1068,13 +990,13 @@ export default class Readability {
 
     // 检查element是否有实际的内容
     return !this._someNode(element.childNodes, function (node) {
-      return node.nodeType === this.TEXT_NODE &&
+      return node.nodeType === TEXT_NODE &&
         REGEXPS.hasContent.test(node.textContent);
     });
   }
 
   _isElementWithoutContent(node) {
-    return node.nodeType === this.ELEMENT_NODE &&
+    return node.nodeType === ELEMENT_NODE &&
       node.textContent.trim().length == 0 &&
       (node.children.length == 0 ||
         node.children.length == node.getElementsByTagName("br").length + node.getElementsByTagName("hr").length);
@@ -1083,19 +1005,19 @@ export default class Readability {
   /** 确定元素是否有子块级元素。  */
   _hasChildBlockElement(element) {
     return this._someNode(element.childNodes, function (node) {
-      return this.DIV_TO_P_ELEMS.has(node.tagName) || this._hasChildBlockElement(node);
+      return DIV_TO_P_ELEMS.has(node.tagName) || this._hasChildBlockElement(node);
     });
   }
 
   /** 判断节点是不是短语内容 phrasing content. */
   _isPhrasingContent(node) {
-    return node.nodeType === this.TEXT_NODE || this.PHRASING_ELEMS.indexOf(node.tagName) !== -1 ||
+    return node.nodeType === TEXT_NODE || PHRASING_ELEMS.indexOf(node.tagName) !== -1 ||
       ((node.tagName === "A" || node.tagName === "DEL" || node.tagName === "INS") && this._everyNode(node.childNodes, this._isPhrasingContent));
   }
 
   _isWhitespace(node) {
-    return (node.nodeType === this.TEXT_NODE && node.textContent.trim().length === 0) ||
-      (node.nodeType === this.ELEMENT_NODE && node.tagName === "BR");
+    return (node.nodeType === TEXT_NODE && node.textContent.trim().length === 0) ||
+      (node.nodeType === ELEMENT_NODE && node.tagName === "BR");
   }
 
   /** 获取链接密度占内容的百分比；链接内的文本量除以节点中的文本总数。  */
@@ -1463,12 +1385,10 @@ export default class Readability {
     return textSimilarity(this._articleTitle, heading) > 0.75;
   }
 
-  /** 判断是否激活flag */
   _flagIsActive(flag) {
     return (this._flags & flag) > 0;
   }
 
-  /** 移除固定flag */
   _removeFlag(flag) {
     this._flags = this._flags & ~flag;
   }
@@ -1486,7 +1406,7 @@ export default class Readability {
     if (this._maxElemsToParse > 0) {
       let numTags = this._doc.getElementsByTagName("*").length;
       if (numTags > this._maxElemsToParse) {
-        throw new Error("Aborting parsing document; " + numTags + " elements found");
+        throw new Error("超出最大元素限制：此文档有" + numTags + "元素");
       }
     }
 

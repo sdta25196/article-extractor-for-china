@@ -1,4 +1,7 @@
-import { DEPRECATED_SIZE_ATTRIBUTE_ELEMS, PRESENTATIONAL_ATTRIBUTES, REGEXPS } from "../src/type.js";
+import {
+  DEPRECATED_SIZE_ATTRIBUTE_ELEMS, ELEMENT_NODE,
+  PRESENTATIONAL_ATTRIBUTES, REGEXPS, TEXT_NODE
+} from "../src/type.js";
 
 /** 计算字数 */
 export const wordCount = (str) => str.length
@@ -166,3 +169,27 @@ export const isSingleImage = (node) => {
 
   return isSingleImage(node.children[0]);
 }
+
+function logNode(node) {
+  if (node.nodeType == TEXT_NODE) {
+    return `${node.nodeName} ("${node.textContent}")`;
+  }
+  let attrPairs = Array.from(node.attributes || [], function (attr) {
+    return `${attr.name}="${attr.value}"`;
+  }).join(" ");
+  return `<${node.localName} ${attrPairs}>`;
+};
+
+/** log */
+export function debugLog() {
+  let args = Array.from(arguments, arg => {
+    if (arg && arg.nodeType == ELEMENT_NODE) {
+      return logNode(arg);
+    }
+    return arg;
+  });
+  args.unshift("执行：");
+  console.log.apply(console, args);
+}
+
+export function releaseLog() { }
