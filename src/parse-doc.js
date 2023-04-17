@@ -249,11 +249,11 @@ export default class ParseDOC {
     let doc = this._doc;
     let maybeAllTitle = [
       doc.title.trim(),
-      doc.querySelector('h1')?.innerText.trim(),
-      doc.querySelector('.title')?.innerText.trim(),
-      doc.querySelector('#title')?.innerText.trim(),
-      doc.querySelector('h2')?.innerText.trim()
-    ].filter(t => t).sort((a, b) => a.length > b.length ? -1 : 1) // 较长的优先级更高一些
+      doc.querySelector('h1')?.textContent.trim(),
+      doc.querySelector('.title')?.textContent.trim(),
+      doc.querySelector('#title')?.textContent.trim(),
+      doc.querySelector('h2')?.textContent.trim()
+    ].filter(t => t).sort((a, b) => b.length - a.length) // 较长的优先级更高一些
 
     let curTitle = maybeAllTitle.filter(t => t)[0] || "";
     let origTitle = curTitle;

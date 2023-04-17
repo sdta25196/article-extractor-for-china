@@ -1,54 +1,33 @@
 import ParseDOC from './parse-doc.js'
 import requestURL from './request-url.js'
 import { DOMParser } from 'linkedom'
+// import { JSDOM } from 'jsdom' 
 import { isString } from 'bellajs'
-import canParse from './doc-can-parse.js'
+import preParse from './pre-parse-doc.js'
 
 /** 提取文章 */
 const extract = (html, baseUrl = '') => {
   if (!isString(html)) {
     return null
   }
-  const doc = new DOMParser().parseFromString(html, 'text/html')
-  const base = doc.createElement('base')
+
+  const document = new DOMParser().parseFromString(html, 'text/html')
+  // ! jsdom(可以执行js) 和 linkedom(执行更快) 择机使用。
+  // const { document } = (new JSDOM(html,{  contentType : "text/html" , })).window;
+
+  const base = document.createElement('base')
   base.setAttribute('href', baseUrl)
-  doc.head.appendChild(base)
-  if (!canParse(doc)) {
-    console.log("这个文档不支持详情解析")
+  document.head.appendChild(base)
+
+  if (!preParse(document)) {
+    console.log("这个文档不支持详情解析") // ! 目前这个判断不准确
   }
-  const reader = new ParseDOC(doc, {
+  const reader = new ParseDOC(document, {
     keepClasses: true,
   })
   const result = reader.parse() ?? {}
   return result
 }
-
-// ! 文案在内置pdf中，需要搞到iframe完整的html才行 - 一般会在iframe里，获取iframe里的地址文件即可
-// const url = 'https://physics.nju.edu.cn/xwgg/gg/20230404/i242037.html'
-// const url = 'https://zs.jmi.edu.cn/3c/5e/c1702a80990/page.htm'
-// ! 文案非常短的，默认提取不到. contentLengthThreshold 设置小一些就可以。但是会出现误差。
-// ! title 中的标题不正确
-// const url = 'https://xsxy.nju.edu.cn/jyjx/rcpy/20201126/i170797.html'
-// ! 全是 table 的
-// const url = 'https://bmf.sumhs.edu.cn/1c/98/c3460a269464/page.htm'
-// ! 标题带短横杠的
-// const url = 'http://dlkx.hrbnu.edu.cn/info/1049/1325.htm'
-
-// !内容是一张图片 识别有问题！！！！ - 可以利用是否符合页面抓取来避开这类网页
-// const url = 'https://www.shupl.edu.cn/jjfxy/2022/0929/c4267a115621/page.htm'
-const url = 'https://www.whzkb.cn/#/detail?pageid=1652&typeid=5'
-
-// !内容是加密的 识别有问题！！！！！
-// const url = 'https://www.jxmtc.com/info/1041/9943.htm'
-// ! gbk 编码的
-// const url = 'http://www.acac.cn/index.php?m=content&c=index&a=show&catid=41&id=4679'
-// ! 微信公众号
-// const url = 'https://mp.weixin.qq.com/s/EnaYPZi7fX0kZoPP4VVNWA'
-// ! 阮一峰
-// const url = 'https://www.ruanyifeng.com/blog/2023/04/weekly-issue-249.html'
-// ! 常规
-// const url = 'https://news.nju.edu.cn/zhxw/20230404/i112453.html'
-
 
 /**
 *
@@ -57,27 +36,29 @@ const url = 'https://www.whzkb.cn/#/detail?pageid=1652&typeid=5'
 * @param  urlOrHtml url或者html
 * @param  baseUrl 基准url
 */
-async function run(urlOrHtml, baseUrl) {
+export default async function run(urlOrHtml, baseUrl) {
   if (!urlOrHtml) return null
-  let html = ''
+  let html = '', loadTime, parseTime
   // 如果url是网址 就去需要请求html
   if (urlOrHtml.startsWith('http')) {
     baseUrl = baseUrl ? baseUrl : urlOrHtml
-    console.time("请求耗时")
+    const startTime = Date.now()
     try {
       html = await requestURL(urlOrHtml)
     } catch (err) {
       console.log(err)
       return
     }
-    console.timeEnd("请求耗时")
+    const endTime = Date.now()
+    // 请求耗时
+    loadTime = endTime - startTime
   } else {
     html = urlOrHtml
   }
-  console.time("分析耗时")
-  const c = extract(html, baseUrl)
-  console.timeEnd("分析耗时")
-  console.log(c)
+  const startTime = Date.now()
+  const article = extract(html, baseUrl)
+  const endTime = Date.now()
+  // 分析耗时
+  parseTime = endTime - startTime
+  return { ...article, loadTime, parseTime }
 }
-
-run(url)

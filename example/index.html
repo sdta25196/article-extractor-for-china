@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script>
+
+    function search() {
+      const v = document.querySelector("#url").value
+      fetch('http://localhost:3100/extract?url=' + v).then(res => res.json()).then(res => {
+        console.log(res)
+        if (res.error === 0) {
+          document.querySelector('.loadTime').innerText = res.data.loadTime + 'ms'
+          document.querySelector('.parseTime').innerText = res.data.parseTime + 'ms'
+          document.querySelector('.title').innerText = res.data.title || 'null'
+          document.querySelector('.author').innerText = res.data.author || 'null'
+          document.querySelector('.site').innerText = res.data.siteName
+          document.querySelector('.length').innerText = res.data.length
+          document.querySelector('.content').innerText = res.data.textContent
+        }
+      })
+    }
+  </script>
+  <style>
+    .handleBox {
+      text-align: center;
+    }
+
+    #url {
+      width: 300px;
+      margin-top: 20px;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    p {
+      margin-bottom: 30px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #ccc;
+    }
+
+    p span {
+      display: inline-block;
+      margin-left: 20px;
+      color: red;
+      padding: 5px 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="handleBox">
+    URL：<input type="text" id="url">&nbsp;&nbsp;&nbsp;&nbsp;
+    <button type="button" onclick="search()">提取</button>
+  </div>
+  <div>
+    <h2>提取结果</h2>
+    <p>
+      加载时间:<span class="loadTime"></span>&nbsp;&nbsp;&nbsp;&nbsp;
+      解析时间:<span class="parseTime"></span>&nbsp;&nbsp;&nbsp;&nbsp;
+      文章地址:<span class="site"></span>
+    </p>
+    <p>文章标题:<span class="title"></span></p>
+    <p>文章作者:<span class="author"></span>&nbsp;&nbsp;&nbsp;&nbsp;内容长度:<span class="length"></span></p>
+    <p>文章内容:<span class="content"></span></p>
+  </div>
+</body>
+
+</html>

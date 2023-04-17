@@ -6,14 +6,17 @@ const REGEXPS = {
 };
 
 /**
- * 不解析整个文档，确定文档是否可被解析
+ * 预解析文档，确定文档是否可被正确解析. 
+ * 
+ * TODO 后续思路应该改成：预解析页面，分析当前页面属性【文章、列表、聚合页、未知 】
+ * 
  * @param {Object} options 配置对象
  * @param {number} [options.minContentLength=140] 最小内容长度
  * @param {number} [options.minScore=20] 最小分数
  * @param {Function} [options.visibilityChecker=isProbablyVisible] 确定节点是否可见
- * @return {boolean} 当前文档是否可被解析
+ * @return {boolean} 当前文档是否可被正确解析
  */
-function canParse(doc, options = {}) {
+function preParse(doc, options = {}) {
 
   const defaultOptions = { minScore: 20, minContentLength: 140, visibilityChecker: isProbablyVisible };
   options = Object.assign(defaultOptions, options);
@@ -28,7 +31,6 @@ function canParse(doc, options = {}) {
     });
     nodes = Array.from(set);
   }
-
   let score = 0;
   return [].some.call(nodes, function (node) {
     if (!options.visibilityChecker(node)) {
@@ -48,9 +50,7 @@ function canParse(doc, options = {}) {
     if (textContentLength < options.minContentLength) {
       return false;
     }
-
     score += Math.sqrt(textContentLength - options.minContentLength);
-
     if (score > options.minScore) {
       return true;
     }
@@ -58,4 +58,4 @@ function canParse(doc, options = {}) {
   });
 }
 
-export default canParse
+export default preParse
