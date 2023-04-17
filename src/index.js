@@ -46,8 +46,8 @@ export default async function run(urlOrHtml, baseUrl) {
     try {
       html = await requestURL(urlOrHtml)
     } catch (err) {
-      console.log(err)
-      return
+      console.log("请求异常", err)
+      return { error: 1, message: err.toString() }
     }
     const endTime = Date.now()
     // 请求耗时

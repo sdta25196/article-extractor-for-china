@@ -20,6 +20,8 @@
           document.querySelector('.site').innerText = res.data.siteName
           document.querySelector('.length').innerText = res.data.length
           document.querySelector('.content').innerText = res.data.textContent
+        } else {
+          alert(res.message)
         }
       })
     }

@@ -20,6 +20,9 @@ app.get('/extract', async (req, res) => {
   }
   try {
     const data = await run(url)
+    if (!data || data.error === 1) {
+      throw new Error(data)
+    }
     return res.json({
       error: 0,
       message: '文章提取成功',

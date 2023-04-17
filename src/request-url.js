@@ -3,6 +3,14 @@ import encoding from 'encoding'
 import https from 'https'
 import http from 'http'
 
+let timeoutPromise = (timeout) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve('');
+    }, timeout);
+  });
+}
+
 /** 请求url 获得html */
 export default async (url, options = {}) => {
   const {
@@ -12,12 +20,15 @@ export default async (url, options = {}) => {
   } = options
 
   const agent = url.startsWith('https') ? new https.Agent({ rejectUnauthorized: false }) : new http.Agent({ rejectUnauthorized: false })
+  const res = await Promise.race([timeoutPromise(5000), fetch(url, { headers, agent })])
 
-  const res = await fetch(url, { headers, agent })
+  if (typeof res === 'string') {
+    throw new Error(`超时错误`)
+  }
 
   const status = res.status
   if (status >= 400) {
-    throw new Error(`Request failed with error code ${status}`)
+    throw new Error(`状态码：${status}`)
   }
 
   const content_type = parseContentType(res.headers.get('content-type'));
