@@ -253,21 +253,16 @@ export default class ParseDOC {
       doc.querySelector('.title')?.textContent.trim(),
       doc.querySelector('#title')?.textContent.trim(),
       doc.querySelector('h2')?.textContent.trim()
-    ].filter(t => t).sort((a, b) => b.length - a.length) // 较长的优先级更高一些
+    ]
+      .map(t => {
+        // 处理标题中的分隔符
+        return t?.split(/(?<=[^\d])[\|\-](?=[^\d])/).sort((a, b) => b.length - a.length)[0]
+      })
+      .filter(t => t)
+      .sort((a, b) => b.length - a.length) // 较长的优先级更高一些
 
-    let curTitle = maybeAllTitle.filter(t => t)[0] || "";
-    let origTitle = curTitle;
-
-    // 找到标题中的分隔符（|、-），先取第一段, 如果结果字数太少（小于5），就取分隔符后一段
-    if ((/[\|\-]/).test(curTitle)) {
-      curTitle = origTitle.replace(/(.*)[\|\-].*/gi, "$1");
-      if (wordCount(curTitle) < 5) {
-        curTitle = origTitle.replace(/[^\|\-]*[\|\-](.*)/gi, "$1");
-      }
-    }
-
-    /** 处理多个空白符 */
-    curTitle = curTitle.trim().replace(REGEXPS.normalize, " ");
+    // 处理多个空白符 
+    const curTitle = (maybeAllTitle[0] || "").trim().replace(REGEXPS.normalize, " ");
 
     // TODO 这里还可以考虑一下选出来的标题是否匹配，如果不匹配的话，就重新选一个
 
