@@ -18,7 +18,7 @@ import {
 * @param  options 配置项
 *
 */
-export default class Readability {
+export default class ParseDOC {
   FLAG_STRIP_UNLIKELYS = 0x1
   FLAG_WEIGHT_CLASSES = 0x2
   FLAG_CLEAN_CONDITIONALLY = 0x4

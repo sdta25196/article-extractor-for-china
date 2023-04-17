@@ -1,8 +1,8 @@
-import Readability from './readability.js'
-// import Readability from './old_readability.js'
+import ParseDOC from './parse-doc.js'
 import requestURL from './request-url.js'
 import { DOMParser } from 'linkedom'
 import { isString } from 'bellajs'
+import canParse from './doc-can-parse.js'
 
 /** 提取文章 */
 const extract = (html, baseUrl = '') => {
@@ -13,7 +13,10 @@ const extract = (html, baseUrl = '') => {
   const base = doc.createElement('base')
   base.setAttribute('href', baseUrl)
   doc.head.appendChild(base)
-  const reader = new Readability(doc, {
+  if (!canParse(doc)) {
+    console.log("这个文档不支持详情解析")
+  }
+  const reader = new ParseDOC(doc, {
     keepClasses: true,
   })
   const result = reader.parse() ?? {}
@@ -33,12 +36,12 @@ const extract = (html, baseUrl = '') => {
 
 // !内容是一张图片 识别有问题！！！！ - 可以利用是否符合页面抓取来避开这类网页
 // const url = 'https://www.shupl.edu.cn/jjfxy/2022/0929/c4267a115621/page.htm'
-// const url = 'https://www.whzkb.cn/#/detail?pageid=1652&typeid=5'
+const url = 'https://www.whzkb.cn/#/detail?pageid=1652&typeid=5'
 
 // !内容是加密的 识别有问题！！！！！
 // const url = 'https://www.jxmtc.com/info/1041/9943.htm'
 // ! gbk 编码的
-const url = 'http://www.acac.cn/index.php?m=content&c=index&a=show&catid=41&id=4679'
+// const url = 'http://www.acac.cn/index.php?m=content&c=index&a=show&catid=41&id=4679'
 // ! 微信公众号
 // const url = 'https://mp.weixin.qq.com/s/EnaYPZi7fX0kZoPP4VVNWA'
 // ! 阮一峰
@@ -71,7 +74,6 @@ async function run(urlOrHtml, baseUrl) {
   } else {
     html = urlOrHtml
   }
-
   console.time("分析耗时")
   const c = extract(html, baseUrl)
   console.timeEnd("分析耗时")
