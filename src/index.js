@@ -8,7 +8,7 @@ import preParse from './pre-parse-doc.js'
 /** 提取文章 */
 const extract = (html, baseUrl = '') => {
   if (!isString(html)) {
-    return null
+    return {}
   }
 
   const document = new DOMParser().parseFromString(html, 'text/html')

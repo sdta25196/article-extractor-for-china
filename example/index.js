@@ -1,6 +1,5 @@
 import express from 'express'
 import bodyParser from 'body-parser'
-import fs from 'fs'
 import path from 'path'
 import run from '../src/index.js'
 
@@ -8,11 +7,7 @@ const app = express()
 
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
-
-app.get('/', async (req, res) => {
-  let str = fs.readFileSync(path.resolve('example', "./index.html"), 'utf-8')
-  res.send(str)
-})
+app.use(express.static(path.join('example')));
 
 app.post('/extract', async (req, res) => {
   const url = req.body.url
@@ -25,7 +20,7 @@ app.post('/extract', async (req, res) => {
   try {
     const data = await run(url)
     if (!data || data.error === 1) {
-      throw new Error(data)
+      throw new Error(data.message || "哦豁，出现未知错误")
     }
     return res.json({
       error: 0,
@@ -35,7 +30,7 @@ app.post('/extract', async (req, res) => {
   } catch (err) {
     return res.json({
       error: 1,
-      message: err.message,
+      message: err.toString(),
       data: null,
     })
   }

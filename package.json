@@ -7,7 +7,7 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "start": "node example/index.js"
+    "start": "nodemon example/index.js"
   },
   "keywords": [],
   "dependencies": {
