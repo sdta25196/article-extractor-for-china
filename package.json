@@ -7,8 +7,7 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "example": "node example/index.js"
+    "start": "node example/index.js"
   },
   "keywords": [],
   "dependencies": {

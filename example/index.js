@@ -37,6 +37,6 @@ app.get('/extract', async (req, res) => {
   }
 })
 
-app.listen(3100, () => {
-  console.log('Server is running at http://localhost:3100')
+app.listen(3000, () => {
+  console.log('Server is running at http://localhost:3000')
 })
