@@ -8,7 +8,7 @@ import preParse from './pre-parse-doc.js'
 /** 提取文章 */
 const extract = (html, baseUrl = '') => {
   if (!isString(html)) {
-    return {}
+    throw Error("extract函数中 html 参数缺失")
   }
 
   const document = new DOMParser().parseFromString(html, 'text/html')
@@ -18,6 +18,10 @@ const extract = (html, baseUrl = '') => {
   const base = document.createElement('base')
   base.setAttribute('href', baseUrl)
   document.head.appendChild(base)
+
+  if (document.body.querySelectorAll('div,p,span').length < 10) {
+    throw Error("暂不支持js渲染的页面")
+  }
 
   if (!preParse(document)) {
     console.log("这个文档不支持详情解析") // ! 目前这个判断不准确
@@ -35,30 +39,33 @@ const extract = (html, baseUrl = '') => {
 * @date : 2023-04-15 17:00
 * @param  urlOrHtml url或者html
 * @param  baseUrl 基准url
+* @return Object
 */
 export default async function run(urlOrHtml, baseUrl) {
-  if (!urlOrHtml) return null
-  let html = '', loadTime, parseTime
-  // 如果url是网址 就去需要请求html
-  if (urlOrHtml.startsWith('http')) {
-    baseUrl = baseUrl ? baseUrl : urlOrHtml
-    const startTime = Date.now()
-    try {
-      html = await requestURL(urlOrHtml)
-    } catch (err) {
-      console.log("请求异常", err)
-      return { error: 1, message: err.toString() }
+  try {
+    if (!urlOrHtml) {
+      throw Error("urlOrHtml 参数缺失")
     }
+    let html = '', loadTime, parseTime
+    // 如果url是网址 就去需要请求html
+    if (urlOrHtml.startsWith('http')) {
+      baseUrl = baseUrl ? baseUrl : urlOrHtml
+      const startTime = Date.now()
+      html = await requestURL(urlOrHtml)
+      const endTime = Date.now()
+      // 请求耗时
+      loadTime = endTime - startTime
+    } else {
+      html = urlOrHtml
+    }
+
+    const startTime = Date.now()
+    const article = extract(html, baseUrl)
     const endTime = Date.now()
-    // 请求耗时
-    loadTime = endTime - startTime
-  } else {
-    html = urlOrHtml
+    // 分析耗时
+    parseTime = endTime - startTime
+    return { ...article, loadTime, parseTime }
+  } catch (err) {
+    return { error: 1, message: err.toString() }
   }
-  const startTime = Date.now()
-  const article = extract(html, baseUrl)
-  const endTime = Date.now()
-  // 分析耗时
-  parseTime = endTime - startTime
-  return { ...article, loadTime, parseTime }
 }

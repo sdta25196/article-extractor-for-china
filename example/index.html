@@ -40,6 +40,7 @@
           document.querySelector('.site').innerText = value || v
           document.querySelector('.length').innerText = res.data.length || 'null'
           document.querySelector('.content').innerText = res.data.textContent || 'null'
+          document.querySelector('.type').innerText = ''
         } else {
           alert(res.message)
         }

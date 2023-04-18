@@ -4,6 +4,7 @@
 
 1. yarn 
 2. yarn start
+3. 浏览器访问：http://localhost:3000/
 
 ## 特性
 
@@ -31,44 +32,68 @@
   * 外层要处理的问题，一样都少不了。SPA、编码、相对链接等
 * 文本分行后的文本密度 或者 标签密度 进行判断。 
   * 密度判断对短文无效
-* 利用分析 + 规则匹配,计算权重重新排列dom, 来获得文章
-  * 权重的判定方法决定了最终文章的准确性
 
-本项目采取 利用分析 + 规则匹配,计算权重重新排列dom, 来获得文章。
+本项目采取 计算不同节点的权重，通过贪心策略获取更好的节点, 最终获得文章。
 
 ## 规则
 
 制定规则，就代表我们要放弃规则之外的东西
 
-**详情页**
-
-获取正文标题：
-  * 提取网页的 title \ .title \ #title \ h1 \ h2
-
-正文内容a标签密度小于 5% （a的文本量 / 全部文本）
-
-正文内容包含大量的标点符号
-
-正文长度大于50
-
-嵌入标签需要分别处理
-
 ## 不同情况处理：
 
-* 详情页内容是pdf
-需要拿到iframe中的地址，然后拿地址中的全部html进行处理
+**自古以来：滑动、pdf、图片、弹窗、以及一部分JS渲染形式，都不处理**
 
-* js分页
-使用jsdom处理分页逻辑
+* 内容是一张图片
 
-* SPA渲染：延迟拿全部html
-无头浏览器拿html进行抓取，第一版不考虑
+**正常抓取内容** 虽然不准确，但是没关系。
 
-* 详情页内容是图片
-不符合我们的抓取规则，不进行抓取
+https://www.shupl.edu.cn/jjfxy/2022/0929/c4267a115624/page.htm
 
 * 详情页是文件下载
-通过文档类型判断直接过滤为不支持
+
+**不支持** 通过文档类型判断直接过滤为不支持。
+
+https://xb.gdou.edu.cn/__local/C/8F/5C/963522D57066B23D96CE97CDE6B_751CF413_C200.doc?e=.doc
+
+* 滑动
+
+**需要配置header头（cookie）** 页面判断我们为爬虫，返回了滑动验证
+
+https://www.ccdi.gov.cn/yaowenn/202304/t20230411_258083.html
+
+* 详情页为弹出窗口。
+ 
+**不处理。** 没有详情页，对于详情页抓取来说，不存在这种情况。
+
+https://jxjy.sitsh.edu.cn/info?type=1
+
+* pdf
+
+拿iframe里的html, 有的pdf需要滚动才能拿到全部html; 
+
+iframe: (class + id 一定包含pdf 并且 src结尾一定是pdf)
+
+https://zs.jmi.edu.cn/3b/69/c1702a80745/page.htm
+
+* 加密 -JS渲染，不过可以通过转码，拿到数据。
+
+https://www.sdjnwx.com/articles/1171
+
+https://www.sdjnwx.com/articles/1131
+
+* JS 加载 - 暂时不处理
+
+https://www.shjgu.edu.cn/2023/0411/c235a32886/page.htm
+
+https://www.shjgu.edu.cn/2023/0411/c235a32882/page.htm
+
+https://www.zhjpec.edu.cn/MobileContent?id=1632554595328409602
+
+https://www.jxmtc.com/info/1041/9948.htm
+
+* JS 加载 - 内容详情为一张图片
+ 
+https://www.whzkb.cn/#/detail?pageid=820&typeid=5
 
 ## TODO
 

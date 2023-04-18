@@ -1,7 +1,7 @@
 import {
   cleanStyles, isValidByline, getAllNodesWithTag, getInnerText, getNextNode,
   hasAncestorTag, isProbablyVisible, removeAndGetNext, setNodeTag, textSimilarity,
-  wordCount, getCharCount, debugLog, releaseLog
+  getCharCount, debugLog, releaseLog
 } from "../tools/index.js"
 import {
   ALTER_TO_DIV_EXCEPTIONS, DEFAULT_CHAR_THRESHOLD, DEFAULT_MAX_ELEMS_TO_PARSE,
@@ -247,9 +247,16 @@ export default class ParseDOC {
    **/
   _getArticleTitle() {
     let doc = this._doc;
+    let h1List = []
+    this._forEachNode(doc.querySelectorAll('h1'), function (node) {
+      const innerText = node.textContent.trim()
+      if (innerText.length < 50) {
+        h1List.push(node.textContent.trim())
+      }
+    })
     let maybeAllTitle = [
       doc.title.trim(),
-      doc.querySelector('h1')?.textContent.trim(),
+      ...h1List,
       doc.querySelector('.title')?.textContent.trim(),
       doc.querySelector('#title')?.textContent.trim(),
       doc.querySelector('h2')?.textContent.trim()
@@ -1216,7 +1223,7 @@ export default class ParseDOC {
       }
 
       for (let j = 0; j < elem.attributes.length; j++) {
-        attr = elem.attributes[j];
+        let attr = elem.attributes[j];
         if (attr.name === "src" || attr.name === "srcset" || attr.name === "alt") {
           continue;
         }

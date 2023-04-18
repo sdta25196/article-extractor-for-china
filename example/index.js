@@ -20,7 +20,7 @@ app.post('/extract', async (req, res) => {
   try {
     const data = await run(url)
     if (!data || data.error === 1) {
-      throw new Error(data.message || "哦豁，出现未知错误")
+      throw new Error(data?.message || "哦豁，出现未知错误")
     }
     return res.json({
       error: 0,
