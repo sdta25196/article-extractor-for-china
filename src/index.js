@@ -23,6 +23,13 @@ const extract = (html, baseUrl = '') => {
     throw Error("暂不支持js渲染的页面")
   }
 
+  if (
+    Array.from(document.querySelectorAll('iframe')).some(x => x.src.endsWith('.pdf')) ||
+    document.querySelector('*[pdfsrc]')
+  ) {
+    throw Error("暂不支持pdf加载的页面")
+  }
+
   if (!preParse(document)) {
     console.log("这个文档不支持详情解析") // ! 目前这个判断不准确
   }
