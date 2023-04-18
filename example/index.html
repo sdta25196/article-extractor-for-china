@@ -35,7 +35,13 @@
 
     function search() {
       const v = document.querySelector("#url").value
-      fetch('http://localhost:3000/extract?url=' + v).then(res => res.json()).then(res => {
+      fetch('http://localhost:3000/extract', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ url: v }),
+      }).then(res => res.json()).then(res => {
         console.log(res)
         if (res.error === 0) {
           document.querySelector('.loadTime').innerText = res.data.loadTime + 'ms'
@@ -44,7 +50,7 @@
           document.querySelector('.author').innerText = res.data.author || 'null'
           document.querySelector('.site').innerText = res.data.siteName || 'null'
           document.querySelector('.length').innerText = res.data.length || 'null'
-          document.querySelector('.content').innerText = res.data.textContent | 'null'
+          document.querySelector('.content').innerText = res.data.textContent || 'null'
         } else {
           alert(res.message)
         }

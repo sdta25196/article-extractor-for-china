@@ -33,16 +33,14 @@ export default async (url, options = {}) => {
 
   const content_type = parseContentType(res.headers.get('content-type'));
   if (content_type.mimeType === "text/html") {
-    const resCopy = res.clone()
     const buffer = await res.buffer()
     const charset = findHTMLCharset(buffer) || content_type.charset;
-    let text = "";
+    let text = buffer;
 
     if (charset && charset !== 'utf-8') {
       text = encoding.convert(buffer, "UTF-8", charset);
-    } else {
-      text = await resCopy.text()
     }
+
     return text.toString().trim()
   }
 

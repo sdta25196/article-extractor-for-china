@@ -18,7 +18,7 @@ const run = async (url, options = {}) => {
   if (status >= 400) {
     throw new Error(`状态码：${status}`)
   }
-  const resCopy = res.clone()
+  const resCopy = res.clone() // ! 先clone 在转buffer或者text 有些网站会不成功，例如：'https://gkcx.eol.cn'
   console.log(1)
   const buffer = await resCopy.buffer()
   console.log(2)

@@ -1,17 +1,21 @@
 import express from 'express'
+import bodyParser from 'body-parser'
 import fs from 'fs'
 import path from 'path'
 import run from '../src/index.js'
 
 const app = express()
 
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.json())
+
 app.get('/', async (req, res) => {
   let str = fs.readFileSync(path.resolve('example', "./index.html"), 'utf-8')
   res.send(str)
 })
 
-app.get('/extract', async (req, res) => {
-  const url = req.query.url
+app.post('/extract', async (req, res) => {
+  const url = req.body.url
   if (!url) {
     return res.json({
       error: 1,
