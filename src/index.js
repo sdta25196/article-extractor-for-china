@@ -4,12 +4,14 @@ import { DOMParser } from 'linkedom'
 // import { JSDOM } from 'jsdom' 
 import { isString } from 'bellajs'
 import preParse from './pre-parse-doc.js'
+import { purify } from '../tools/index.js'
 
 /** 提取文章 */
-const extract = (html, baseUrl = '') => {
-  if (!isString(html)) {
+const extract = (inputHtml, baseUrl = '') => {
+  if (!isString(inputHtml)) {
     throw Error("extract函数中 html 参数缺失")
   }
+  const html = purify(inputHtml)
 
   const document = new DOMParser().parseFromString(html, 'text/html')
   // ! jsdom(可以执行js) 和 linkedom(执行更快) 择机使用。

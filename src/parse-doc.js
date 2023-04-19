@@ -1,7 +1,7 @@
 import {
   cleanStyles, isValidByline, getAllNodesWithTag, getInnerText, getNextNode,
   hasAncestorTag, isProbablyVisible, removeAndGetNext, setNodeTag, textSimilarity,
-  getCharCount, debugLog, releaseLog
+  getCharCount, debugLog, releaseLog, cleanify
 } from "../tools/index.js"
 import {
   ALTER_TO_DIV_EXCEPTIONS, DEFAULT_CHAR_THRESHOLD, DEFAULT_MAX_ELEMS_TO_PARSE,
@@ -254,22 +254,22 @@ export default class ParseDOC {
         h1List.push(node.textContent.trim())
       }
     })
-    let maybeAllTitle = [
+    let maybeTitle = [
       doc.title.trim(),
       ...h1List,
       doc.querySelector('.title')?.textContent.trim(),
       doc.querySelector('#title')?.textContent.trim(),
       doc.querySelector('h2')?.textContent.trim()
     ]
-      .map(t => {
-        // 处理标题中的分隔符
-        return t?.split(/(?<=[^\d])[\|\-](?=[^\d])/).sort((a, b) => b.length - a.length)[0]
-      })
       .filter(t => t)
-      .sort((a, b) => b.length - a.length) // 较长的优先级更高一些
+      .map(t => {
+        // 处理\n、处理标题中的分隔符
+        return t.split(/\n/)[0].split(/(?<=[^\d])[\|\-](?=[^\d])/).sort((a, b) => b.length - a.length)[0]
+      })
+      .sort((a, b) => b.length - a.length)[0] // 较长的优先级更高一些
 
     // 处理多个空白符 
-    const curTitle = (maybeAllTitle[0] || "").trim().replace(REGEXPS.normalize, " ");
+    const curTitle = (maybeTitle || "").trim().replace(REGEXPS.normalize, " ");
 
     // TODO 这里还可以考虑一下选出来的标题是否匹配，如果不匹配的话，就重新选一个
 
@@ -1449,7 +1449,9 @@ export default class ParseDOC {
       }
     }
 
-    let textContent = articleContent.textContent;
+    // 清理空白符
+    let textContent = cleanify(articleContent.textContent);
+
     return {
       title: this._articleTitle,
       author: metadata.byline || this._articleByline,
