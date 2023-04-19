@@ -6,9 +6,9 @@ import http from 'http'
 let timeoutPromise = (timeout) => {
   return new Promise((resolve) => {
     setTimeout(() => {
-      resolve('');
-    }, timeout);
-  });
+      resolve('')
+    }, timeout)
+  })
 }
 
 /** 请求url 获得html */
@@ -31,14 +31,14 @@ export default async (url, options = {}) => {
     throw new Error(`状态码：${status}`)
   }
 
-  const content_type = parseContentType(res.headers.get('content-type'));
+  const content_type = parseContentType(res.headers.get('content-type'))
   if (content_type.mimeType === "text/html") {
     const buffer = await res.buffer()
-    const charset = findHTMLCharset(buffer) || content_type.charset;
-    let text = buffer;
+    const charset = findHTMLCharset(buffer) || content_type.charset
+    let text = buffer
 
     if (charset && charset !== 'utf-8') {
-      text = encoding.convert(buffer, "UTF-8", charset);
+      text = encoding.convert(buffer, "UTF-8", charset)
     }
 
     return text.toString().trim()
@@ -49,7 +49,7 @@ export default async (url, options = {}) => {
 
 function parseContentType(str) {
   if (!str) {
-    return {};
+    return {}
   }
   let parts = str.split(";")
   let mimeType = parts.shift()
@@ -57,10 +57,10 @@ function parseContentType(str) {
   let chparts
 
   for (var i = 0, len = parts.length; i < len; i++) {
-    chparts = parts[i].split("=");
+    chparts = parts[i].split("=")
     if (chparts.length > 1) {
       if (chparts[0].trim().toLowerCase() == "charset") {
-        charset = chparts[1];
+        charset = chparts[1]
       }
     }
   }
@@ -68,28 +68,28 @@ function parseContentType(str) {
   return {
     mimeType: (mimeType || "").trim().toLowerCase(),
     charset: (charset || "UTF-8").trim().toLowerCase()
-  };
+  }
 }
 
 function findHTMLCharset(htmlbuffer) {
 
   const body = htmlbuffer.toString("ascii")
-  let input, meta, charset;
+  let input, meta, charset
 
   if (meta = body.match(/<meta\s+http-equiv=["']content-type["'][^>]*?>/i)) {
-    input = meta[0];
+    input = meta[0]
   }
 
   if (input) {
-    charset = input.match(/charset\s?=\s?([a-zA-Z\-0-9]*);?/);
+    charset = input.match(/charset\s?=\s?([a-zA-Z\-0-9]*);?/)
     if (charset) {
-      charset = (charset[1] || "").trim().toLowerCase();
+      charset = (charset[1] || "").trim().toLowerCase()
     }
   }
 
   if (!charset && (meta = body.match(/<meta\s+charset=["'](.*?)["']/i))) {
-    charset = (meta[1] || "").trim().toLowerCase();
+    charset = (meta[1] || "").trim().toLowerCase()
   }
 
-  return charset;
+  return charset
 }

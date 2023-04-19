@@ -15,7 +15,7 @@ const extract = (inputHtml, baseUrl = '') => {
 
   const document = new DOMParser().parseFromString(html, 'text/html')
   // ! jsdom(可以执行js) 和 linkedom(执行更快) 择机使用。
-  // const { document } = (new JSDOM(html,{  contentType : "text/html" , })).window;
+  // const { document } = (new JSDOM(html,{  contentType : "text/html" , })).window
 
   const base = document.createElement('base')
   base.setAttribute('href', baseUrl)
