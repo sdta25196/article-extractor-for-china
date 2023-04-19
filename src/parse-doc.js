@@ -1,5 +1,5 @@
 import {
-  cleanStyles, isValidByline, getAllNodesWithTag, getInnerText, getNextNode,
+  cleanStyles, isValidAuthor, getAllNodesWithTag, getInnerText, getNextNode,
   hasAncestorTag, isProbablyVisible, removeAndGetNext, setNodeTag, textSimilarity,
   getCharCount, debugLog, releaseLog, cleanify
 } from "../tools/index.js"
@@ -42,8 +42,10 @@ export default class ParseDOC {
     this._doc = doc
     /** 文章标题 */
     this._articleTitle = null
+    /** 文章发布时间 */
+    this._articleTime = null
     /** 文章作者 */
-    this._articleByline = null
+    this._articleAuthor = null
     /** 文章站点名称 */
     this._articleSiteName = doc.baseURI
     /** 存放候选节点的临时数组 */
@@ -470,8 +472,8 @@ export default class ParseDOC {
     node.readability.contentScore += this._getClassWeight(node)
   }
 
-  _checkByline(node, matchString) {
-    if (this._articleByline) {
+  _checkAuthor(node, matchString) {
+    if (this._articleAuthor) {
       return false
     }
     let rel, itemprop
@@ -480,8 +482,8 @@ export default class ParseDOC {
       itemprop = node.getAttribute("itemprop")
     }
 
-    if ((rel === "author" || (itemprop && itemprop.indexOf("author") !== -1) || REGEXPS.byline.test(matchString)) && isValidByline(node.textContent)) {
-      this._articleByline = node.textContent.trim()
+    if ((rel === "author" || (itemprop && itemprop.indexOf("author") !== -1) || REGEXPS.author.test(matchString)) && isValidAuthor(node.textContent)) {
+      this._articleAuthor = node.textContent.trim()
       return true
     }
 
@@ -540,7 +542,7 @@ export default class ParseDOC {
         }
 
         // 删除作者节点
-        if (this._checkByline(node, matchString)) {
+        if (this._checkAuthor(node, matchString)) {
           node = removeAndGetNext(node)
           continue
         }
@@ -964,7 +966,7 @@ export default class ParseDOC {
     }
 
     // 作者
-    metadata.byline = values["dc:creator"] ||
+    metadata.author = values["dc:creator"] ||
       values["dcterm:creator"] ||
       values["author"]
 
@@ -979,7 +981,7 @@ export default class ParseDOC {
 
     // 进行html实体转换
     metadata.title = this._unescapeHtmlEntities(metadata.title)
-    metadata.byline = this._unescapeHtmlEntities(metadata.byline)
+    metadata.author = this._unescapeHtmlEntities(metadata.author)
     metadata.excerpt = this._unescapeHtmlEntities(metadata.excerpt)
 
     return metadata
@@ -1447,7 +1449,8 @@ export default class ParseDOC {
 
     return {
       title: this._articleTitle,
-      author: metadata.byline || this._articleByline,
+      author: metadata.author || this._articleAuthor,
+      time: metadata.time || this._articleTime,
       content: this._serializer(articleContent),
       textContent: textContent,
       length: textContent.length,

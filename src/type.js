@@ -10,7 +10,7 @@ export const REGEXPS = {
   negative: /-ad-|hidden|^hid$| hid$| hid |^hid |banner|combx|comment|com-|contact|foot|footer|footnote|gdpr|masthead|media|meta|outbrain|promo|related|scroll|share|shoutbox|sidebar|skyscraper|sponsor|shopping|tags|tool|widget/i,
   extraneous: /print|archive|comment|discuss|e[\-]?mail|share|reply|all|login|sign|single|utility/i,
   /** 一些可能是作者的class 和 id */
-  byline: /byline|author|dateline|writtenby|p-author/i,
+  author: /byline|author|dateline|writtenby|p-author|publisher/i,
   replaceFonts: /<(\/?)font[^>]*>/gi,
   /** 多个空白符 */
   normalize: /\s{2,}/g,

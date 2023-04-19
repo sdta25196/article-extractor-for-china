@@ -92,10 +92,10 @@ export const concatNodeLists = () => {
 }
 
 /** 长度小于20的字符串才有可能是作者 */
-export const isValidByline = (byline) => {
-  if (typeof byline == "string" || byline instanceof String) {
-    byline = byline.trim()
-    return (byline.length > 0) && (byline.length < 20)
+export const isValidAuthor = (author) => {
+  if (typeof author == "string" || author instanceof String) {
+    author = author.trim()
+    return (author.length > 0) && (author.length < 20)
   }
   return false
 }
