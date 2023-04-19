@@ -1,7 +1,7 @@
 import {
   cleanStyles, isValidAuthor, getAllNodesWithTag, getInnerText, getNextNode,
   hasAncestorTag, isProbablyVisible, removeAndGetNext, setNodeTag, textSimilarity,
-  getCharCount, debugLog, releaseLog, cleanify
+  getCharCount, debugLog, releaseLog, cleanify, unescapeHtmlEntities, handleColons, isValidTime
 } from "../tools/index.js"
 import {
   ALTER_TO_DIV_EXCEPTIONS, DEFAULT_CHAR_THRESHOLD, DEFAULT_MAX_ELEMS_TO_PARSE,
@@ -472,6 +472,19 @@ export default class ParseDOC {
     node.readability.contentScore += this._getClassWeight(node)
   }
 
+  _checkPublishTime(node, matchString) {
+    if (this._articleTime) {
+      return false
+    }
+
+    if ((node.nodeName === 'TIME' || REGEXPS.pubilshTime.test(matchString)) && isValidTime(node.textContent)) {
+      // 处理冒号
+      this._articleTime = handleColons(node.textContent.trim())
+      return true
+    }
+    return false
+  }
+
   _checkAuthor(node, matchString) {
     if (this._articleAuthor) {
       return false
@@ -483,10 +496,10 @@ export default class ParseDOC {
     }
 
     if ((rel === "author" || (itemprop && itemprop.indexOf("author") !== -1) || REGEXPS.author.test(matchString)) && isValidAuthor(node.textContent)) {
-      this._articleAuthor = node.textContent.trim()
+      // 处理冒号
+      this._articleAuthor = handleColons(node.textContent.trim())
       return true
     }
-
     return false
   }
 
@@ -543,6 +556,12 @@ export default class ParseDOC {
 
         // 删除作者节点
         if (this._checkAuthor(node, matchString)) {
+          node = removeAndGetNext(node)
+          continue
+        }
+
+        // 删除时间节点
+        if (this._checkPublishTime(node, matchString)) {
           node = removeAndGetNext(node)
           continue
         }
@@ -897,32 +916,11 @@ export default class ParseDOC {
     }
   }
 
-  /** 将字符串中的一些常见HTML实体转换为相应的字符。返回新的字符串  */
-  _unescapeHtmlEntities(str) {
-    if (!str) {
-      return str
-    }
-
-    let htmlEscapeMap = HTML_ESCAPE_MAP
-    return str.replace(/&(quot|amp|apos|lt|gt);/g, function (_, tag) {  // > < 等
-      return htmlEscapeMap[tag]
-    }).replace(/&#(?:x([0-9a-z]{1,4})|([0-9]{1,4}));/gi, function (_, hex, numStr) { // &#60  &#x2564
-      let num = parseInt(hex || numStr, hex ? 16 : 10)
-      return String.fromCharCode(num)
-    })
-  }
-
   /** 获取文章的元数据 */
   _getArticleMetadata() {
     let metadata = {}
     let values = {}
     let metaElements = this._doc.getElementsByTagName("meta")
-
-    // 只抓这些property，property属性是一个以冒号(:)分隔的值列表
-    let propertyPattern = /\s*(dc|dcterm|og|twitter)\s*:\s*(author|creator|description|title|site_name)\s*/gi
-
-    // 只抓这些name
-    let namePattern = /^\s*(?:(dc|dcterm|og|twitter|weibo:(article|webpage))\s*[\.:]\s*)?(author|creator|description|title|site_name)\s*$/i
 
     // 从 meta标签 里面找描述
     this._forEachNode(metaElements, function (element) {
@@ -936,13 +934,13 @@ export default class ParseDOC {
       let name = null
 
       if (elementProperty) {
-        matches = elementProperty.match(propertyPattern)
+        matches = elementProperty.match(REGEXPS.propertyPattern)
         if (matches) {
           name = matches[0].toLowerCase().replace(/\s/g, "")
           values[name] = content.trim()
         }
       }
-      if (!matches && elementName && namePattern.test(elementName)) {
+      if (!matches && elementName && REGEXPS.namePattern.test(elementName)) {
         name = elementName
         if (content) {
           // 转换为小写，删除任何空白，并将点转换为冒号，方便一会匹配。
@@ -980,9 +978,9 @@ export default class ParseDOC {
       values["twitter:description"]
 
     // 进行html实体转换
-    metadata.title = this._unescapeHtmlEntities(metadata.title)
-    metadata.author = this._unescapeHtmlEntities(metadata.author)
-    metadata.excerpt = this._unescapeHtmlEntities(metadata.excerpt)
+    metadata.title = unescapeHtmlEntities(metadata.title)
+    metadata.author = unescapeHtmlEntities(metadata.author)
+    metadata.excerpt = unescapeHtmlEntities(metadata.excerpt)
 
     return metadata
   }
@@ -1450,7 +1448,7 @@ export default class ParseDOC {
     return {
       title: this._articleTitle,
       author: metadata.author || this._articleAuthor,
-      time: metadata.time || this._articleTime,
+      pubilshTime: this._articleTime,
       content: this._serializer(articleContent),
       textContent: textContent,
       length: textContent.length,

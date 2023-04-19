@@ -38,6 +38,7 @@
           document.querySelector('.author').innerText = res.data.author || 'null'
           // document.querySelector('.site').innerText = res.data.siteName || 'null'
           document.querySelector('.site').innerText = value || v
+          document.querySelector('.publishTime').innerText = res.data.pubilshTime || 'null'
           document.querySelector('.length').innerText = res.data.length || 'null'
           document.querySelector('.content').innerText = res.data.textContent || 'null'
           document.querySelector('.type').innerText = ''
@@ -81,7 +82,7 @@
     URL：<input type="text" id="url">&nbsp;&nbsp;&nbsp;&nbsp;
     <button type="button" onclick="search()">提取</button>
   </div>
-  <div><button onclick="next()">下一个</button></div>
+  <!-- <div><button onclick="next()">下一个</button></div> -->
   <div>
     <h2>提取结果: <span class="type"></span></h2>
     <p>
@@ -90,7 +91,10 @@
       文章地址:<span class="site"></span>
     </p>
     <p>文章标题:<span class="title"></span></p>
-    <p>文章作者:<span class="author"></span>&nbsp;&nbsp;&nbsp;&nbsp;内容长度:<span class="length"></span></p>
+    <p>
+      文章作者:<span class="author"></span>&nbsp;&nbsp;&nbsp;&nbsp;
+      内容长度:<span class="length"></span>&nbsp;&nbsp;&nbsp;&nbsp;
+      发布时间:<span class="publishTime"></span></p>
     <p>文章内容:<span class="content"></span></p>
   </div>
 </body>

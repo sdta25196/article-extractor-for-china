@@ -11,6 +11,8 @@ export const REGEXPS = {
   extraneous: /print|archive|comment|discuss|e[\-]?mail|share|reply|all|login|sign|single|utility/i,
   /** 一些可能是作者的class 和 id */
   author: /byline|author|dateline|writtenby|p-author|publisher/i,
+  /** 发布时间 */
+  pubilshTime: /time|sj|shijian|update|/i,
   replaceFonts: /<(\/?)font[^>]*>/gi,
   /** 多个空白符 */
   normalize: /\s{2,}/g,
@@ -30,7 +32,11 @@ export const REGEXPS = {
   srcsetUrl: /(\S+)(\s+[\d.]+[xw])?(\s*(?:,|$))/g,
   /** base64的地址 */
   b64DataUrl: /^data:\s*([^\s;,]+)\s*;\s*base64\s*,/i,
-  jsonLdArticleTypes: /^Article|AdvertiserContentArticle|NewsArticle|AnalysisNewsArticle|AskPublicNewsArticle|BackgroundNewsArticle|OpinionNewsArticle|ReportageNewsArticle|ReviewNewsArticle|Report|SatiricalArticle|ScholarlyArticle|MedicalScholarlyArticle|SocialMediaPosting|BlogPosting|LiveBlogPosting|DiscussionForumPosting|TechArticle|APIReference$/
+  /** meta的property属性是一个以冒号(:)分隔的值列表 */
+  propertyPattern: /\s*(dc|dcterm|og|twitter)\s*:\s*(author|creator|description|title|site_name)\s*/gi,
+  /** meta 的 name 标签 */
+  namePattern: /^\s*(?:(dc|dcterm|og|twitter|weibo:(article|webpage))\s*[\.:]\s*)?(author|creator|description|title|site_name)\s*$/i,
+  jsonLdArticleTypes: /^ Article | AdvertiserContentArticle | NewsArticle | AnalysisNewsArticle | AskPublicNewsArticle | BackgroundNewsArticle | OpinionNewsArticle | ReportageNewsArticle | ReviewNewsArticle | Report | SatiricalArticle | ScholarlyArticle | MedicalScholarlyArticle | SocialMediaPosting | BlogPosting | LiveBlogPosting | DiscussionForumPosting | TechArticle | APIReference$ /
 }
 
 /** style 和弃用的属性 */

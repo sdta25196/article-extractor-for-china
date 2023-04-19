@@ -2,6 +2,7 @@ import sanitize from 'sanitize-html'
 import { pipe } from 'bellajs'
 import {
   DEPRECATED_SIZE_ATTRIBUTE_ELEMS, ELEMENT_NODE,
+  HTML_ESCAPE_MAP,
   PRESENTATIONAL_ATTRIBUTES, REGEXPS, TEXT_NODE
 } from "../src/type.js"
 
@@ -100,6 +101,28 @@ export const isValidAuthor = (author) => {
   return false
 }
 
+/** 验证时间格式 */
+export const isValidTime = (time) => {
+  if (typeof time == "string" || time instanceof String) {
+    time = cleanify(time)
+    const timeDensity = (time.match(/\d|-|\/|:/g)?.length || 0) / time.length
+    return (time.length < 25) && (timeDensity > 0.6)
+  }
+  return false
+}
+
+/** 处理冒号，取第一个冒号后面到第二个冒号前面的文案 */
+export const handleColons = (text) => {
+  const colons = text.match(/：/g) || []
+  if (colons.length === 1) {
+    text = text.split(/： ?/)[1]
+  }
+  if (colons.length > 1) {
+    text = text.match(/：(.+) .[^ ]+：/)[1]
+  }
+  return text
+}
+
 /**
   * 检查节点祖先是否拥有指定标签
   * @param  HTMLElement node
@@ -196,6 +219,22 @@ export function debugLog() {
 
 export function releaseLog() { }
 
+
+
+/** 将字符串中的一些常见HTML实体转换为相应的字符。返回新的字符串  */
+export function unescapeHtmlEntities(str) {
+  if (!str) {
+    return str
+  }
+
+  let htmlEscapeMap = HTML_ESCAPE_MAP
+  return str.replace(/&(quot|amp|apos|lt|gt);/g, function (_, tag) {  // > < 等
+    return htmlEscapeMap[tag]
+  }).replace(/&#(?:x([0-9a-z]{1,4})|([0-9]{1,4}));/gi, function (_, hex, numStr) { // &#60  &#x2564
+    let num = parseInt(hex || numStr, hex ? 16 : 10)
+    return String.fromCharCode(num)
+  })
+}
 
 const WS_REGEXP = /^[\s\f\n\r\t\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff\x09\x0a\x0b\x0c\x0d\x20\xa0]+$/ // eslint-disable-line
 
