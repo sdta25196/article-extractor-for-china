@@ -21,7 +21,7 @@ const extract = (inputHtml, baseUrl = '') => {
   base.setAttribute('href', baseUrl)
   document.head.appendChild(base)
 
-  if (document.body.querySelectorAll('div,p,span').length < 10) {
+  if (document.querySelectorAll('div,p,span').length < 10) {
     throw Error("暂不支持js渲染的页面")
   }
 

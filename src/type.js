@@ -12,7 +12,7 @@ export const REGEXPS = {
   /** 一些可能是作者的class 和 id */
   author: /byline|author|dateline|writtenby|p-author|publisher/i,
   /** 发布时间 */
-  pubilshTime: /time|sj|shijian|update|/i,
+  pubilshTime: /time|sj|shijian|update/i,
   replaceFonts: /<(\/?)font[^>]*>/gi,
   /** 多个空白符 */
   normalize: /\s{2,}/g,
