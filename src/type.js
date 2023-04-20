@@ -6,7 +6,7 @@ export const REGEXPS = {
   okMaybeItsACandidate: /and|article|body|column|content|main|shadow/i,
   /** 一些大概率是文章的class 和 id */
   positive: /article|body|content|entry|hentry|h-entry|main|page|pagination|post|text|blog|story/i,
-  /** 一些导航 class */
+  /** 一些不好的 class */
   negative: /-ad-|hidden|^hid$| hid$| hid |^hid |banner|combx|comment|com-|contact|foot|footer|footnote|gdpr|masthead|media|meta|outbrain|promo|related|scroll|share|shoutbox|sidebar|skyscraper|sponsor|shopping|tags|tool|widget/i,
   extraneous: /print|archive|comment|discuss|e[\-]?mail|share|reply|all|login|sign|single|utility/i,
   /** 一些可能是作者的class 和 id */
