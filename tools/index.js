@@ -105,8 +105,8 @@ export const isValidAuthor = (author) => {
 export const isValidTime = (time) => {
   if (typeof time == "string" || time instanceof String) {
     time = cleanify(time)
-    const timeDensity = (time.match(/\d|-|\/|:/g)?.length || 0) / time.length
-    return (time.length < 25) && (timeDensity > 0.6)
+    const timeDensity = (time.match(REGEXPS.checkTime)?.length || 0) / time.length
+    return (time.length < 30) && (timeDensity > 0.6)
   }
   return false
 }

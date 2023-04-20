@@ -477,14 +477,16 @@ export default class ParseDOC {
       return false
     }
 
-    if ((node.nodeName === 'TIME' || REGEXPS.pubilshTime.test(matchString)) && isValidTime(node.textContent)) {
-      // 处理冒号
-      let time = handleColons(node.textContent.trim())
-      // 处理多余的文字
-      this._articleTime = time.replace(/(?:^.[^\d]+)|(?:.[^\d]+$)/g, "")
-
-      return true
+    // if ((node.nodeName === 'TIME' || REGEXPS.pubilshTime.test(matchString)) && isValidTime(node.textContent)) {
+    if (isValidTime(node.textContent)) {
+      let maybeTime = node.textContent.trim().match(REGEXPS.timeFormat)
+      if (maybeTime) {
+        this._articleTime = maybeTime[0]
+        return true
+      }
+      return false
     }
+
     return false
   }
 

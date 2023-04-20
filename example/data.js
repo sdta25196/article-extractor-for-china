@@ -114,3 +114,327 @@ const data = [
 // const url = 'https://www.ruanyifeng.com/blog/2023/04/weekly-issue-249.html'
 // ! 常规
 // const url = 'https://news.nju.edu.cn/zhxw/20230404/i112453.html'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// 武汉纺织大学所有网站列表
+let c = [
+
+  {
+    name: "武汉纺织大学新闻文化网  ",
+    link: "https://news.wtu.edu.cn/"
+  },
+  // 机关职能部门
+  {
+    name: "学校办公室（主体责任办公室） ",
+    link: "https://db.wtu.edu.cn/"
+  },
+  {
+    name: "机关党委 ",
+    link: "https://jgdw.wtu.edu.cn/"
+  },
+  {
+    name: "纪委（监察专员办）综合室 ",
+    link: "https://jw.wtu.edu.cn/"
+  },
+  {
+    name: "组织部（党校） ",
+    link: "https://zzb.wtu.edu.cn/"
+  },
+  {
+    name: "宣传部（新闻中心） ",
+    link: "https://xcb.wtu.edu.cn/"
+  },
+  {
+    name: "统战部 ",
+    link: "https://tzb.wtu.edu.cn/"
+  },
+  {
+    name: "学生工作部（处）、武装部 ",
+    link: "https://student.wtu.edu.cn/"
+  },
+  {
+    name: "研究生院、研究生工作部 ",
+    link: "https://gs.wtu.edu.cn/"
+  },
+  {
+    name: "保卫部（处） ",
+    link: "https://bwc.wtu.edu.cn/"
+  },
+  {
+    name: "工会 https://g",
+    link: "h.wtu.edu.cn/"
+  },
+  {
+    name: "团委 ",
+    link: "https://tw.wtu.edu.cn/"
+  },
+  {
+    name: "发展规划处 ",
+    link: "https://fgc.wtu.edu.cn/"
+  },
+  {
+    name: "教务处（创新创业学院） ",
+    link: "https://jwc.wtu.edu.cn/"
+  },
+  {
+    name: "科学技术发展院 ",
+    link: "https://kyc.wtu.edu.cn/"
+  },
+  {
+    name: "人事处、教师工作部 ",
+    link: "https://rsc.wtu.edu.cn/"
+  },
+  {
+    name: "财务处 ",
+    link: "https://cwc.wtu.edu.cn/"
+  },
+  {
+    name: "审计处 ",
+    link: "https://sjc.wtu.edu.cn/"
+  },
+  {
+    name: "招生就业处 ",
+    link: "https://zjc.wtu.edu.cn/"
+  },
+  {
+    name: "国际交流与合作处https://gjc.wtu.edu.cn/c",
+    link: "hinese.jsp"
+  },
+  {
+    name: "资产与实验室管理处 ",
+    link: "https://dpm.wtu.edu.cn/"
+  },
+  {
+    name: "基建管理处 ",
+    link: "https://jjc.wtu.edu.cn/"
+  },
+  {
+    name: "离退休工作处、离退休党委 ",
+    link: "https://lgc.wtu.edu.cn/"
+  },
+  {
+    name: "校友工作处 https://xy",
+    link: "h.wtu.edu.cn/"
+  },
+  {
+    name: "后勤保障处 https://",
+    link: "hq.wtu.edu.cn/"
+  },
+  // 直属、附属单位
+  {
+    name: "采购与招标管理中心 ",
+    link: "https://zbb.wtu.edu.cn/"
+  },
+  {
+    name: "图书馆 ",
+    link: "https://lib.wtu.edu.cn/"
+  },
+  {
+    name: "档案馆 ",
+    link: "https://dag.wtu.edu.cn/"
+  },
+  {
+    name: "信息技术中心 ",
+    link: "https://etc.wtu.edu.cn/"
+  },
+  {
+    name: "教师发展中心（教学评估中心） ",
+    link: "https://cfd.wtu.edu.cn/"
+  },
+  {
+    name: "期刊社 ",
+    link: "https://qks.wtu.edu.cn/"
+  },
+  {
+    name: "技术研究院（国家级科研平台服务中心） ",
+    link: "https://tri.wtu.edu.cn/"
+  },
+  {
+    name: "国家重点实验室 ",
+    link: "https://fzcljs.wtu.edu.cn/"
+  },
+  {
+    name: "医院 https://",
+    link: "hospital.wtu.edu.cn/"
+  },
+
+
+  // 二级院部
+  {
+    name: "纺织科学与工程学院 ",
+    link: "https://te.wtu.edu.cn/"
+  },
+  {
+    name: "机械工程与自动化学院 ",
+    link: "https://me.wtu.edu.cn/"
+  },
+  {
+    name: "化学与化工学院 ",
+    link: "https://ec.wtu.edu.cn/"
+  },
+  {
+    name: "环境工程学院 https://",
+    link: "hjxy.wtu.edu.cn/"
+  },
+  {
+    name: "电子与电气工程学院 ",
+    link: "https://ei.wtu.edu.cn/"
+  },
+  {
+    name: "计算机与人工智能学院 ",
+    link: "https://csai.wtu.edu.cn/"
+  },
+  {
+    name: "数理科学学院 ",
+    link: "https://slxy.wtu.edu.cn/"
+  },
+  {
+    name: "材料科学与工程学院 ",
+    link: "https://mse.wtu.edu.cn/"
+  },
+  {
+    name: "艺术与设计学院 ",
+    link: "https://art.wtu.edu.cn/"
+  },
+  {
+    name: "服装学院 https://fas",
+    link: "hion.wtu.edu.cn/"
+  },
+  {
+    name: "传媒学院 ",
+    link: "https://cm.wtu.edu.cn/"
+  },
+  {
+    name: "管理学院 ",
+    link: "https://em.wtu.edu.cn/"
+  },
+  {
+    name: "会计学院 ",
+    link: "https://acc.wtu.edu.cn/"
+  },
+  {
+    name: "经济学院 ",
+    link: "https://fe.wtu.edu.cn/"
+  },
+  {
+    name: "外国语学院 ",
+    link: "https://fl.wtu.edu.cn/"
+  },
+  {
+    name: "马克思主义学院 ",
+    link: "https://mks.wtu.edu.cn/"
+  },
+  {
+    name: "伯明翰时尚创意学院 ",
+    link: "https://bifca.wtu.edu.cn/"
+  },
+  {
+    name: "体育部 ",
+    link: "https://ty.wtu.edu.cn/"
+  },
+  {
+    name: "继续教育学院 ",
+    link: "https://jxjy.wtu.edu.cn/"
+  },
+  {
+    name: "国际教育学院  ",
+    link: "https://iec.wtu.edu.cn/"
+  },
+  // 专题网
+  {
+    name: "武汉纺织大学思政网  ",
+    link: "https://sz.wtu.edu.cn/"
+  },
+  {
+    name: "武汉纺织大学-学术生态建设网  https://xues",
+    link: "hu.wtu.edu.cn/"
+  },
+  {
+    name: "武汉纺织大学人才招聘网  ",
+    link: "https://sites.wtu.edu.cn/zp/"
+  },
+  {
+    name: "欢迎访问王栋教授课题组暨湖北省先进纺织材料及应用重点实验室  ",
+    link: "http://wdgroup.org/"
+  },
+  {
+    name: "武汉纺织大学信息公开网  ",
+    link: "https://xwgk.wtu.edu.cn/"
+  },
+  {
+    name: "创新创业学院  ",
+    link: "https://cyxy.wtu.edu.cn/"
+  },
+  {
+    name: "武汉纺织大学--心理健康教育中心  ",
+    link: "https://xljk.wtu.edu.cn/"
+  },
+  {
+    name: "武汉纺织大学就业信息网  ",
+    link: "https://wtu.91wllm.com/"
+  },
+
+
+  // 不计入网站
+  {
+    name: "企业决策支持研究中心资源池及网站内容管理系统  ",
+    link: "https://dss.wtu.edu.cn/"
+  },
+  {
+    name: "Home-武汉纺织大学-管理学院  https://em.wtu.edu.cn/ywwz/Home.",
+    link: "htm"
+  },
+  {
+    name: "WUHAN TEXTILE UNIVERSITY  https://englis",
+    link: "h.wtu.edu.cn/"
+  },
+  {
+    name: "纺织化学品工程技术研究中心（筹）  ",
+    link: "https://tarc.wtu.edu.cn/"
+  },
+  {
+    name: "武汉纺织大学MPAcc教育中心  ",
+    link: "https://mpacc.wtu.edu.cn/"
+  },
+  {
+    name: "湖北省数字化纺织装备重点实验室  ",
+    link: "https://dtlab.wtu.edu.cn/"
+  },
+  {
+    name: "成果申报  ",
+    link: "https://gjjxcg.wtu.edu.cn/"
+  },
+  {
+    name: "武汉纺织大学学报 http://xuebao.ijournals.cn/c",
+    link: "h/index.aspx"
+  },
+  {
+    name: "人才招聘  https://rszp.wtu.edu.cn/rsfw/sys/zpglxt/extranet/index.do#/",
+    link: "home（外挂系统，投简历用）"
+  },
+  {
+    name: "非线性科学研究中心 ",
+    link: "https://nonlinear.wtu.edu.cn/"
+  },
+  {
+    name: "武汉纺织大学--迎新网  ",
+    link: "https://welcome.wtu.edu.cn/"
+  },
+  {
+    name: "武汉纺织大学党史学习教育专题网  ",
+    link: "https://xds.wtu.edu.cn/"
+  }
+]
