@@ -479,7 +479,10 @@ export default class ParseDOC {
 
     if ((node.nodeName === 'TIME' || REGEXPS.pubilshTime.test(matchString)) && isValidTime(node.textContent)) {
       // 处理冒号
-      this._articleTime = handleColons(node.textContent.trim())
+      let time = handleColons(node.textContent.trim())
+      // 处理多余的文字
+      this._articleTime = time.replace(/(?:^.[^\d]+)|(?:.[^\d]+$)/g, "")
+
       return true
     }
     return false
