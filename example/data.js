@@ -310,8 +310,8 @@ let c = [
     link: "https://art.wtu.edu.cn/"
   },
   {
-    name: "服装学院 https://fas",
-    link: "hion.wtu.edu.cn/"
+    name: "服装学院",
+    link: " https://fashion.wtu.edu.cn/"
   },
   {
     name: "传媒学院 ",
@@ -359,8 +359,8 @@ let c = [
     link: "https://sz.wtu.edu.cn/"
   },
   {
-    name: "武汉纺织大学-学术生态建设网  https://xues",
-    link: "hu.wtu.edu.cn/"
+    name: "武汉纺织大学-学术生态建设网  ",
+    link: "https://xueshu.wtu.edu.cn/"
   },
   {
     name: "武汉纺织大学人才招聘网  ",
@@ -394,12 +394,12 @@ let c = [
     link: "https://dss.wtu.edu.cn/"
   },
   {
-    name: "Home-武汉纺织大学-管理学院  https://em.wtu.edu.cn/ywwz/Home.",
-    link: "htm"
+    name: "Home-武汉纺织大学-管理学院  ",
+    link: "https://em.wtu.edu.cn/ywwz/Home.htm"
   },
   {
-    name: "WUHAN TEXTILE UNIVERSITY  https://englis",
-    link: "h.wtu.edu.cn/"
+    name: "WUHAN TEXTILE UNIVERSITY  ",
+    link: "https://english.wtu.edu.cn/"
   },
   {
     name: "纺织化学品工程技术研究中心（筹）  ",
@@ -418,12 +418,12 @@ let c = [
     link: "https://gjjxcg.wtu.edu.cn/"
   },
   {
-    name: "武汉纺织大学学报 http://xuebao.ijournals.cn/c",
-    link: "h/index.aspx"
+    name: "武汉纺织大学学报 ",
+    link: "http://xuebao.ijournals.cn/ch/index.aspx"
   },
   {
-    name: "人才招聘  https://rszp.wtu.edu.cn/rsfw/sys/zpglxt/extranet/index.do#/",
-    link: "home（外挂系统，投简历用）"
+    name: "人才招聘  ",
+    link: "https://rszp.wtu.edu.cn/rsfw/sys/zpglxt/extranet/index.do#/home（外挂系统，投简历用）"
   },
   {
     name: "非线性科学研究中心 ",

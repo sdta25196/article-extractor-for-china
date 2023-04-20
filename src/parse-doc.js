@@ -266,7 +266,7 @@ export default class ParseDOC {
       .filter(t => t)
       .map(t => {
         // 处理\n、处理标题中的分隔符
-        return t.split(/\n/)[0].split(/(?<=[^\d])[\|\-](?=[^\d])/).sort((a, b) => b.length - a.length)[0]
+        return t.split(/\n/)[0].split(/(?<=[^\d])[\-](?=[^\d])/).sort((a, b) => b.length - a.length)[0]
       })
       .sort((a, b) => b.length - a.length)[0] // 较长的优先级更高一些
 
@@ -478,7 +478,7 @@ export default class ParseDOC {
     }
 
     // if ((node.nodeName === 'TIME' || REGEXPS.pubilshTime.test(matchString)) && isValidTime(node.textContent)) {
-    if (isValidTime(node.textContent)) {
+    if (isValidTime(node.textContent)) { // ! 拿到的时间准确度下降
       let maybeTime = node.textContent.trim().match(REGEXPS.timeFormat)
       if (maybeTime) {
         this._articleTime = maybeTime[0]

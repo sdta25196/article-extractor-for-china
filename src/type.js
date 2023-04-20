@@ -14,9 +14,9 @@ export const REGEXPS = {
   /** 发布时间 */
   pubilshTime: /time|sj|shijian|update|fbt|sub|fubiao/i,
   /** 时间格式 */
-  timeFormat: /(\d+[-|/|年]\d+[-|/|月]\d+日?( \d+:\d+(:\d+)?)?)|(\d+:\d+(:\d+)?)/g,
+  timeFormat: /(\d+[-|/|年]\d+[-|/|月]\d+日?(\s\d+:\d+(:\d+)?)?)|(\d+:\d+(:\d+)?)/g,
   /** 检查time */
-  checkTime: /\d|-|\/|:|年|月|日/g,
+  checkTime: /\d|-|\/|:|：|\s|年|月|日/g,
   replaceFonts: /<(\/?)font[^>]*>/gi,
   /** 多个空白符 */
   normalize: /\s{2,}/g,
@@ -81,6 +81,7 @@ export const HTML_ESCAPE_MAP = {
   "amp": "&",
   "quot": '"',
   "apos": "'",
+  "nbsp": " ",
 }
 
 /** 元素 nodeType === 1 */
