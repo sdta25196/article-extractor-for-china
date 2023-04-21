@@ -116,7 +116,8 @@ const data = [
 // const url = 'https://news.nju.edu.cn/zhxw/20230404/i112453.html'
 // ! 不符合规则，导致整个body的内容全部拿下来了
 // const url = 'https://dag.wtu.edu.cn/info/1031/1273.htm'
-
+// ! 时间拿错了
+// const url = 'https://gip.csu.edu.cn/info/1112/3327.htm'
 
 
 

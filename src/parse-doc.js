@@ -519,6 +519,45 @@ export default class ParseDOC {
     return ancestors
   }
 
+  // 如果有框架元素，就直接拿框架元素
+  _grabArticleFromFrame() {
+    let doc = this._doc
+    const isframe = doc.querySelector("#vsb_content") // 框架内容元素
+    if (isframe) {
+
+      // 处理时间
+      let parent = isframe.parentNode
+      for (let i = 0; i < 2; i++) {
+        if (parent.parentNode) {
+          parent = parent.parentNode;
+        }
+      }
+
+      let node = getNextNode(parent)
+      while (node) {
+        if (isValidTime(node.textContent)) {
+          let maybeTime = node.textContent.trim().match(REGEXPS.timeFormat)
+          if (maybeTime) {
+            this._articleTime = maybeTime[0]
+            break;
+          }
+        }
+        node = getNextNode(node)
+      }
+
+      // 处理元素
+      let div = doc.createElement("DIV")
+      div.id = "readability-page-1"
+      div.className = "page"
+      while (isframe.firstChild) {
+        div.appendChild(isframe.firstChild)
+      }
+      isframe.appendChild(div)
+      return div
+    }
+    return null
+  }
+
   /** 使用各种指标(内容得分，类名，元素类型)，寻找最合适的内容，返回div元素。 page是一个document.body */
   _grabArticle(page) {
     this.log("**** grabArticle ****")
@@ -1430,9 +1469,9 @@ export default class ParseDOC {
     this._articleTitle = metadata.title
 
     // 获取文章
-    let articleContent = this._grabArticle()
-    if (!articleContent)
-      return null
+    let articleContent = this._grabArticleFromFrame() || this._grabArticle()
+
+    if (!articleContent) return null
 
     this.log("Grabbed: " + articleContent.innerHTML)
 
