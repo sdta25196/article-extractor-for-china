@@ -125,4 +125,3 @@ https://www.whzkb.cn/#/detail?pageid=820&typeid=5
   * jsdom 可以执行js
   * linkdom 更快
 * 列表规则、分页规则
-* 301 支持
