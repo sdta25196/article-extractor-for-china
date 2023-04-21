@@ -23,7 +23,7 @@ const extract = (inputHtml, baseUrl = '') => {
   document.head.appendChild(base)
 
   if (document.querySelectorAll('div,p,span').length < 10) {
-    throw Error("暂不支持js渲染的页面")
+    throw Error("暂不支持js渲染的页面\n或者服务器针对爬虫处理的页面")
   }
 
   if (
