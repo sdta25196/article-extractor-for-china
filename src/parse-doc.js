@@ -6,7 +6,7 @@ import {
 import {
   ALTER_TO_DIV_EXCEPTIONS, DEFAULT_CHAR_THRESHOLD, DEFAULT_MAX_ELEMS_TO_PARSE,
   DEFAULT_N_TOP_CANDIDATES, DEFAULT_TAGS_TO_SCORE, DIV_TO_P_ELEMS, ELEMENT_NODE,
-  HTML_ESCAPE_MAP, PHRASING_ELEMS, REGEXPS, TEXT_NODE, UNLIKELY_ROLES
+  PHRASING_ELEMS, REGEXPS, TEXT_NODE, UNLIKELY_ROLES
 } from "./type.js"
 
 /**
@@ -559,11 +559,11 @@ export default class ParseDOC {
           continue
         }
 
-        // 删除作者节点
-        if (this._checkAuthor(node, matchString)) {
-          node = removeAndGetNext(node)
-          continue
-        }
+        // 删除作者节点 // ! 04-21 暂时注释掉作者元素的操作
+        // if (this._checkAuthor(node, matchString)) {
+        //   node = removeAndGetNext(node)
+        //   continue
+        // }
 
         // 删除时间节点
         if (this._checkPublishTime(node, matchString)) {
@@ -1452,7 +1452,7 @@ export default class ParseDOC {
 
     return {
       title: this._articleTitle,
-      author: metadata.author || this._articleAuthor,
+      // author: metadata.author || this._articleAuthor, // ! 04-21 暂时注释掉作者元素的操作
       pubilshTime: this._articleTime,
       content: this._serializer(articleContent),
       textContent: textContent,
