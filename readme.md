@@ -121,7 +121,8 @@ https://www.whzkb.cn/#/detail?pageid=820&typeid=5
 * ~~判断页面是否符合分析逻辑~~
 * ~~http与https认证~~
 * ~~入口代码编写~~
-* jsdom + linkdom 实现对SPA抓取，并且提供足够的优化
+* jsdom + linkdom 实现对SPA抓取，并且提供足够的优化，或许还需要加入puppeteer。
   * jsdom 可以执行js
   * linkdom 更快
 * 列表规则、分页规则
+* 部分页面需要设置cookie - 得添加cookie设置的功能

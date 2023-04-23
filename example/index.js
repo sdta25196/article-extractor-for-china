@@ -1,10 +1,12 @@
 import express from 'express'
 import bodyParser from 'body-parser'
 import path from 'path'
+import cors from 'cors'
 import run from '../src/index.js'
 
 const app = express()
 
+app.use(cors())
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 app.use(express.static(path.join('example')));
