@@ -32,7 +32,7 @@ export default async (url, options = {}) => {
   }
 
   const content_type = parseContentType(res.headers.get('content-type'))
-  if (content_type.mimeType === "text/html") {
+  if (!content_type.mimeType || content_type.mimeType === "text/html") {
     const buffer = await res.buffer()
     const charset = findHTMLCharset(buffer) || content_type.charset
     let text = buffer

@@ -22,6 +22,11 @@ const extract = (inputHtml, baseUrl = '') => {
   base.setAttribute('href', baseUrl)
   document.head.appendChild(base)
 
+  // 有些站点 body 他乱写。
+  if (!document.body.innerHTML && document.querySelectorAll('div,p,span').length > 10) {
+    document.body.innerHTML = document.documentElement.innerHTML
+  }
+
   if (document.querySelectorAll('div,p,span').length < 10) {
     throw Error("暂不支持js渲染的页面\n或者服务器针对爬虫处理的页面")
   }
