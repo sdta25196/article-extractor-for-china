@@ -118,10 +118,17 @@ const data = [
 // const url = 'https://dag.wtu.edu.cn/info/1031/1273.htm'
 // ! 时间拿错了
 // const url = 'https://gip.csu.edu.cn/info/1112/3327.htm'
-
-
-
-
+// ! 加cookie
+// const url = 'https://www.zznu.edu.cn/shiyuanxinwen/Article/20234/ArticleContent_15573.html'
+// const url = 'https://www.zznu.edu.cn/shiyuanxinwen/Article/20234/ArticleContent_15573.html'
+// ! cookie 每次都变
+// const url = 'https://sose.uestc.edu.cn/info/1004/11411.htm'
+// ! 这货文章详情分页
+// http://yn.people.com.cn/n2/2020/1114/c212295-34415464-2.html
+// ! 真实编码写在header头里
+// https://www.nvu.edu.cn/xinwenzhongxin/xueyuanxinwen/html.php?c-10483.html
+// ! 真实编码写在html里
+// http://yn.people.com.cn/n2/2020/1114/c212295-34415464-2.html
 
 
 

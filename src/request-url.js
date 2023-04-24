@@ -34,7 +34,8 @@ export default async (url, options = {}) => {
   const content_type = parseContentType(res.headers.get('content-type'))
   if (!content_type.mimeType || content_type.mimeType === "text/html") {
     const buffer = await res.buffer()
-    const charset = findHTMLCharset(buffer) || content_type.charset
+    const charset = content_type.charset || findHTMLCharset(buffer) || 'utf-8'
+
     let text = buffer
 
     if (charset && charset !== 'utf-8') {
@@ -67,7 +68,7 @@ function parseContentType(str) {
 
   return {
     mimeType: (mimeType || "").trim().toLowerCase(),
-    charset: (charset || "UTF-8").trim().toLowerCase()
+    charset: (charset || "").trim().toLowerCase()
   }
 }
 
