@@ -26,6 +26,13 @@ const extract = (inputHtml, baseUrl = '') => {
   if (!document.body.innerHTML && document.querySelectorAll('div,p,span').length > 10) {
     document.body.innerHTML = document.documentElement.innerHTML
   }
+  let bodys = document.querySelectorAll('body')
+  for (let i = 1; i < bodys.length; i++) {
+    let invalidBody = bodys[i]
+    let div = document.createElement('div')
+    div.innerHTML = invalidBody.innerHTML
+    invalidBody.parentNode.replaceChild(div, invalidBody)
+  }
 
   if (document.querySelectorAll('div,p,span').length < 10) {
     throw Error("暂不支持js渲染的页面\n或者服务器针对爬虫处理的页面")
