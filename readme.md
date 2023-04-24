@@ -22,7 +22,7 @@
 * 使用 linkedom 进行实例化，如果我们认为此也为列表页面，并且分页是js渲染的分页，就改成 jsdom进行实例化。 - 仅列表页面需要使用jsdom
 * SPA 页面需要使用无头浏览器获取html，在用jsdom来实例化（处理分页逻辑）。 - 仅列表页面需要使用jsdom
 
-* 有的框架会把文章放到 `#vsb_content` 中
+* 有的框架会把文章放到 `#vsb_content`,`.TRS_Editor` 中
 * 有些框架会有两个body, 而文章在第二个body中
 
 ## 常见规则

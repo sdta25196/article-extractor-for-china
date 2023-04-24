@@ -522,7 +522,8 @@ export default class ParseDOC {
   // 如果有框架元素，就直接拿框架元素
   _grabArticleFromFrame() {
     let doc = this._doc
-    const isframe = doc.querySelector("div[id^='vsb_content']") // 框架内容元素
+    // 框架内容元素
+    const isframe = doc.querySelector("div[id^='vsb_content']") || doc.querySelector('.TRS_Editor')
     if (isframe) {
 
       // 处理时间
