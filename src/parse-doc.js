@@ -261,7 +261,7 @@ export default class ParseDOC {
       ...h1List,
       doc.querySelector('.title')?.textContent.trim(),
       doc.querySelector('#title')?.textContent.trim(),
-      doc.querySelector('h2')?.textContent.trim()
+      // doc.querySelector('h2')?.textContent.trim()
     ]
       .filter(t => t)
       .map(t => {
