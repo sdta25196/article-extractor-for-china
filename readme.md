@@ -3,7 +3,7 @@
 ## 启动
 
 1. yarn 
-2. yarn example
+2. yarn start
 3. 浏览器访问：http://localhost:3000/
 
 ## 特性
