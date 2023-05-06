@@ -8,7 +8,7 @@ const REGEXPS = {
 /**
  * 预解析文档，确定文档是否可被正确解析. 
  * 
- * TODO 后续思路应该改成：预解析页面，分析当前页面属性【文章、列表、聚合页、未知 】
+ * TODO 后续思路应该改成：预解析页面，分析当前页面属性【文章、列表、聚合页、功能页、未知】
  * 
  * @param {Object} options 配置对象
  * @param {number} [options.minContentLength=140] 最小内容长度
