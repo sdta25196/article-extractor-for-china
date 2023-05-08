@@ -17,7 +17,7 @@ const REGEXPS = {
  * ! 5. 某些框架的详情 url 是固定格式的
  * ! 尝试删除某些元素之后，利用剩下的元素进行拆分？
  * ! 
- * ! 
+ * ! ！！ 这个好像利用URL就够可识别了？？？
  * ! 
  * @param {Object} options 配置对象
  * @param {number} [options.minScore=20] 最小分数
