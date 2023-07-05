@@ -106,6 +106,10 @@ export const isValidTime = (time) => {
   if (typeof time == "string" || time instanceof String) {
     time = cleanify(time)
     const timeDensity = (time.match(REGEXPS.checkTime)?.length || 0) / time.length
+    // 如果文案中有时间或者日期。就放宽查找条件
+    if (time.includes('时间') || time.includes('日期')) {
+      return (time.length < 60) && (timeDensity > 0.45)
+    }
     return (time.length < 30) && (timeDensity > 0.6)
   }
   return false
