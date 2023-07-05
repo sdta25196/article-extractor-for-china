@@ -528,7 +528,7 @@ export default class ParseDOC {
 
       // 处理时间
       let parent = isframe.parentNode
-      for (let i = 0; i < 2; i++) {
+      for (let i = 0; i < 4; i++) {
         if (parent.parentNode) {
           parent = parent.parentNode;
         }
@@ -536,13 +536,17 @@ export default class ParseDOC {
 
       let node = getNextNode(parent)
       while (node) {
-        if (isValidTime(node.textContent)) {
-          let maybeTime = node.textContent.trim().match(REGEXPS.timeFormat)
-          if (maybeTime) {
-            this._articleTime = maybeTime[0]
-            break;
-          }
+        if (node === isframe) {
+          break
         }
+        // 框架不用检测，往上找就对了
+        // if (isValidTime(node.textContent)) {
+        let maybeTime = node.textContent.trim().match(REGEXPS.timeFormat)
+        if (maybeTime) {
+          this._articleTime = maybeTime[0]
+          break;
+        }
+        // }
         node = getNextNode(node)
       }
 
