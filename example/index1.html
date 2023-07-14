@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>检测页面属性【监测点、聚合页、详情页】</title>
+  <script>
+    function search() {
+      const url = document.querySelector("#url").value
+      const pageType = document.querySelector('.pageType')
+      const punctuationCount = document.querySelector('.punctuationCount')
+      const ulCount = document.querySelector('.ulCount')
+      const maxLength = document.querySelector('.maxLength')
+      // const maybeDetialPage = document.querySelector('.maybeDetialPage')
+      const havaPage = document.querySelector('.havaPage')
+      const listElementNum = document.querySelector('.listElementNum')
+      const aTagRatio = document.querySelector('.aTagRatio')
+      const liTagRatio = document.querySelector('.liTagRatio')
+      pageType.innerText = ''
+      punctuationCount.innerText = ''
+      ulCount.innerText = ''
+      maxLength.innerText = ''
+      // maybeDetialPage.innerText = ''
+      havaPage.innerText = ''
+      listElementNum.innerText = ''
+      aTagRatio.innerText = ''
+      liTagRatio.innerText = ''
+      fetch('http://' + location.host + '/pre-parse', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ url }),
+      }).then(res => res.json()).then(res => {
+        if (res.error === 0) {
+          pageType.innerText = res.data.pageType
+          punctuationCount.innerText = res.data.punctuationCount
+          ulCount.innerText = res.data.ulCount
+          maxLength.innerText = res.data.maxLength
+          // maybeDetialPage.innerText = res.data.maybeDetialPage
+          havaPage.innerText = res.data.havaPage
+          listElementNum.innerText = res.data.listElementNum
+          aTagRatio.innerText = res.data.aTagRatio
+          liTagRatio.innerText = res.data.liTagRatio
+        } else {
+          alert(res.message)
+        }
+      })
+    }
+  </script>
+  <style>
+    .handleBox {
+      text-align: center;
+    }
+
+    #url {
+      width: 300px;
+      margin-top: 20px;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    p {
+      margin-bottom: 30px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #ccc;
+    }
+
+    p span {
+      display: inline-block;
+      margin-left: 20px;
+      color: red;
+      padding: 5px 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="handleBox">
+    URL：<input type="text" id="url">&nbsp;&nbsp;&nbsp;&nbsp;
+    <button type="button" onclick="search()">检测</button>
+  </div>
+  <div>
+    <h2>检测结果</h2>
+    <p>
+      页面属性：<span class="pageType"></span>
+    </p>
+    <p>
+      标点数量：<span class="punctuationCount"></span>
+    </p>
+    <p>
+      ul、ol列表数量：<span class="ulCount"></span>
+    </p>
+    <p>
+      最大内容长度：<span class="maxLength"></span>
+    </p>
+    <!-- <p>
+      拥有详情元素：<span class="maybeDetialPage"></span>
+    </p> -->
+    <p>
+      拥有page元素：<span class="havaPage"></span>
+    </p>
+    <p>
+      包含list元素数量：<span class="listElementNum"></span>
+    </p>
+    <p>
+      a标签占比：<span class="aTagRatio"></span>
+    </p>
+    <p>
+      li标签内容占比：<span class="liTagRatio"></span>
+    </p>
+  </div>
+</body>
+
+</html>

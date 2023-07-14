@@ -23,7 +23,7 @@
     }
     function search(value) {
       const v = document.querySelector("#url").value
-      fetch(location.href + 'extract', {
+      fetch('http://' + location.host + '/extract', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
