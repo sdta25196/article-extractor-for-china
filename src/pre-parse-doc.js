@@ -34,7 +34,7 @@ async function preParse(url) {
   // 先删除 footer
   const footer = document.querySelector('.footer')
   if (footer) {
-    document.body.removeChild(footer)
+    footer.remove()
   }
 
   const nodes = Array.from(document.querySelectorAll('body *'))
